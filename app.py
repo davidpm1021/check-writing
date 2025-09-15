@@ -865,10 +865,26 @@ def _validate_amount_numeric(value: str, expected: str) -> tuple[bool, str | Non
     return False, f"Expected: {expected}"
 
 
+def _normalize_amount_words(text: str) -> str:
+    """Looser normalization for amount-in-words.
+    - case-insensitive
+    - ignore 'dollar(s)', 'and', 'only'
+    - allow hyphens vs spaces
+    - keep the cents fraction like 00/100
+    """
+    t = text.lower().strip()
+    t = t.replace('-', ' ')
+    # keep fraction intact, strip punctuation except / digits
+    allowed = set("abcdefghijklmnopqrstuvwxyz 0123456789/ ")
+    t = ''.join(ch if ch in allowed else ' ' for ch in t)
+    tokens = [tok for tok in t.split() if tok not in {"dollar", "dollars", "and", "only"}]
+    return " ".join(tokens)
+
+
 def _validate_amount_words(value: str, expected: str) -> tuple[bool, str | None]:
-    if _normalize_text(value) == _normalize_text(expected):
+    if _normalize_amount_words(value) == _normalize_amount_words(expected):
         return True, None
-    return False, f"Example: {expected}"
+    return False, f"Example: {expected} (format flexible)"
 
 
 def render_check_we_do() -> None:
@@ -886,7 +902,8 @@ def render_check_we_do() -> None:
     with st.container():
         st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
         st.markdown("#### We do — Semi-guided practice")
-        st.caption("Type into each field. Corrections will appear below as you go.")
+        st.info(_get_scenarios()[st.session_state.selected_scenario]["prompt"])  # show situation context
+        st.caption("Type into each field. Corrections will appear below as you go. Memo and signature are flexible.")
 
         bg = _get_check_bg_data_url()
         positions = _load_overlay_positions()
@@ -957,17 +974,17 @@ def render_check_we_do() -> None:
         else:
             st.markdown("<div class='field-hint'>Use words and cents as a fraction (xx/100).</div>", unsafe_allow_html=True)
 
-        # Memo (optional)
+        # Memo (optional) — accept any value
         st.session_state.we_memo = updated.get("memo", "")
         if st.session_state.we_memo:
-            st.markdown("<div class='field-ok'>Not required, but helpful.</div>", unsafe_allow_html=True)
+            st.markdown("<div class='field-ok'>Memo added</div>", unsafe_allow_html=True)
         else:
-            st.markdown("<div class='field-hint'>Add a short note for your records.</div>", unsafe_allow_html=True)
+            st.markdown("<div class='field-hint'>Memo is optional but helpful.</div>", unsafe_allow_html=True)
 
-        # Signature
+        # Signature — accept any non-empty
         st.session_state.we_signature = updated.get("signature", "")
         if st.session_state.we_signature:
-            st.markdown("<div class='field-ok'>Looks good</div>", unsafe_allow_html=True)
+            st.markdown("<div class='field-ok'>Signature present</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='field-hint'>Sign your name as on your bank account.</div>", unsafe_allow_html=True)
 
