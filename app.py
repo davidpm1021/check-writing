@@ -1006,8 +1006,6 @@ def render_calibrate() -> None:
                 st.rerun()
 
         st.markdown('</div>', unsafe_allow_html=True)
-    elif screen == "calibrate":
-        render_calibrate()
 
 
 if __name__ == "__main__":
