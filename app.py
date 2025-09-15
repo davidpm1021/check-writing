@@ -769,6 +769,8 @@ def render_check_guided() -> None:
 
         # Percent-based hotspot positions to align with typical personal check layout
         positions = _load_overlay_positions()
+        # Ensure background image is applied inline to avoid CSS timing issues
+        bg_url = _get_check_bg_data_url()
 
         # Use native HTML overlay in I do to avoid component load timing in some environments
         def style_box(key: str, active: bool) -> str:
@@ -776,7 +778,10 @@ def render_check_guided() -> None:
             hi = "outline:2px solid var(--color-bright-blue); outline-offset:2px;" if active else ""
             return f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%; {hi}"
 
-        parts = ["<div class='check-real'>"]
+        if bg_url:
+            parts = [f"<div class='check-real' style=\"background-image:url('{bg_url}'); background-size:cover; background-position:center;\">"]
+        else:
+            parts = ["<div class='check-real'>"]
         parts.append(f"<div class='hotspot' style='{style_box('date', current_clamped==0)}'><div class='fill'>{fields['date']}</div></div>")
         parts.append(f"<div class='hotspot' style='{style_box('payee', current_clamped==1)}'><div class='fill'>{fields['payee']}</div></div>")
         # Remove leading $ if present, since the check already shows it
