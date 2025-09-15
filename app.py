@@ -10,6 +10,7 @@ import streamlit as st
 import base64
 from pathlib import Path
 import json
+import streamlit.components.v1 as components
 
 try:
     import tokens as design_tokens
@@ -342,14 +343,16 @@ def inject_global_styles() -> None:
 
 def _check_overlay_component(bg_url: str | None, positions: dict, values: dict, editable: bool, highlight: str | None = None) -> dict:
     """Render the overlay component and return updated values when edited."""
-    # Streamlit components API
-    import streamlit.components.v1 as components
-
-    comp = components.declare_component(
-        "check_overlay",
-        path=str(Path("components/check_overlay")),
-    )
-    result = comp(bg_url=bg_url, positions=positions, values=values, editable=editable, highlight=highlight or "")
+    # Declare component once at module level path
+    global CHECK_OVERLAY
+    try:
+        CHECK_OVERLAY
+    except NameError:
+        CHECK_OVERLAY = components.declare_component(
+            "check_overlay",
+            path=str(Path(__file__).parent / "components" / "check_overlay"),
+        )
+    result = CHECK_OVERLAY(bg_url=bg_url, positions=positions, values=values, editable=editable, highlight=highlight or "")
     return result or values
 
 
