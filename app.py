@@ -541,42 +541,9 @@ def render_check_static() -> None:
         st.markdown("#### Scenario", help="Use this prompt to fill out the check in later sprints.")
         st.info(scenario["prompt"])
 
-        # Static visual of a check (realistic layout)
+        # Static visual: only the image background with no overlay labels
         check_html = """
-        <div class="check-real" role="group" aria-label="Check fields (static)">
-          <div class="check-number">0025</div>
-          <div class="date-wrap">
-            <div class="small-label">DATE</div>
-            <div class="date-line"></div>
-          </div>
-          <div class="check-row" style="margin-top: 96px;">
-            <div>
-              <div class="check-label">PAY TO THE ORDER OF</div>
-              <div class="line"></div>
-            </div>
-            <div>
-              <div class="check-label">$</div>
-              <div class="amount-box"></div>
-            </div>
-          </div>
-          <div class="check-row words">
-            <div>
-              <div class="line"></div>
-            </div>
-            <div class="dollars-label">DOLLARS</div>
-          </div>
-          <div class="check-row bottom" style="margin-top: 28px;">
-            <div>
-              <div class="check-label">MEMO</div>
-              <div class="line"></div>
-            </div>
-            <div>
-              <div class="check-label" style="text-align:right">AUTHORIZED SIGNATURE</div>
-              <div class="line"></div>
-            </div>
-          </div>
-          <div class="micr">||:789123456||: 123789456123&quot; 0025</div>
-        </div>
+        <div class="check-real" role="img" aria-label="Check background"></div>
         """
         st.markdown(check_html, unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -651,51 +618,31 @@ def render_check_guided() -> None:
         progress_ratio = 0.0 if current_clamped < 0 else (current_clamped + 1) / total_steps
         st.progress(progress_ratio, text=f"Step {max(0, current_clamped + 1)} of {total_steps}")
 
-        # Check with filled fields (realistic layout)
+        # Percent-based hotspot positions to align with typical personal check layout
+        positions = {
+            "date": {"top": 13, "left": 62, "width": 32, "height": 7},
+            "payee": {"top": 30, "left": 8, "width": 70, "height": 8},
+            "amount_numeric": {"top": 30, "left": 80, "width": 12, "height": 7},
+            "amount_words": {"top": 45, "left": 7, "width": 82, "height": 8},
+            "memo": {"top": 72, "left": 7, "width": 42, "height": 7},
+            "signature": {"top": 72, "left": 55, "width": 36, "height": 7},
+        }
+
+        def box_style(key: str, active: bool) -> str:
+            p = positions[key]
+            bg = "background: rgba(39,92,228,0.08);" if active else ""
+            return (
+                f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%; {bg}"
+            )
+
         check_html = f"""
         <div class=\"check-real\" role=\"group\" aria-label=\"Check fields (guided)\"> 
-          <div class=\"check-number\">0025</div>
-          <button class=\"hotspot\" style=\"right:20px; top:56px; width:360px; height:42px\" aria-label=\"Date field\"></button>
-          <div class=\"date-wrap\">
-            <div class=\"small-label\">DATE</div>
-            <div class=\"date-line\"></div>
-          </div>
-
-          <button class=\"hotspot\" style=\"left:20px; top:96px; width: calc(100% - 320px); height:58px\" aria-label=\"Pay to the Order of field\"></button>
-          <button class=\"hotspot\" style=\"right:20px; top:110px; width:220px; height:42px\" aria-label=\"Numeric amount field\"></button>
-
-          <button class=\"hotspot\" style=\"left:20px; top:166px; width: calc(100% - 240px); height:58px\" aria-label=\"Amount in words field\"></button>
-
-          <button class=\"hotspot\" style=\"left:20px; bottom:74px; width:45%; height:42px\" aria-label=\"Memo field\"></button>
-          <button class=\"hotspot\" style=\"right:20px; bottom:74px; width:45%; height:42px\" aria-label=\"Signature field\"></button>
-
-          <div class=\"check-row\" style=\"margin-top: 96px;\"> 
-            <div>
-              <div class=\"check-label\">PAY TO THE ORDER OF</div>
-              <div class=\"line\"><div class=\"fill\">{fields['payee']}</div></div>
-            </div>
-            <div>
-              <div class=\"check-label\">$</div>
-              <div class=\"amount-box\">{fields['amount_numeric']}</div>
-            </div>
-          </div>
-          <div class=\"check-row words\">
-            <div>
-              <div class=\"line\"><div class=\"fill\">{fields['amount_words']}</div></div>
-            </div>
-            <div class=\"dollars-label\">DOLLARS</div>
-          </div>
-          <div class=\"check-row bottom\" style=\"margin-top: 28px;\">
-            <div>
-              <div class=\"check-label\">MEMO</div>
-              <div class=\"line\"><div class=\"fill\">{fields['memo']}</div></div>
-            </div>
-            <div>
-              <div class=\"check-label\" style=\"text-align:right\">AUTHORIZED SIGNATURE</div>
-              <div class=\"line\"><div class=\"fill\">{fields['signature']}</div></div>
-            </div>
-          </div>
-          <div class=\"micr\">||:789123456||: 123789456123\" 0025</div>
+          <div class=\"hotspot\" style=\"{box_style('date', current_clamped==0)}\"><div class=\"fill\">{fields['date']}</div></div>
+          <div class=\"hotspot\" style=\"{box_style('payee', current_clamped==1)}\"><div class=\"fill\">{fields['payee']}</div></div>
+          <div class=\"hotspot\" style=\"{box_style('amount_numeric', current_clamped==2)}\"><div class=\"fill\" style=\"right:10px; left:auto;\">{fields['amount_numeric']}</div></div>
+          <div class=\"hotspot\" style=\"{box_style('amount_words', current_clamped==3)}\"><div class=\"fill\">{fields['amount_words']}</div></div>
+          <div class=\"hotspot\" style=\"{box_style('memo', current_clamped==4)}\"><div class=\"fill\">{fields['memo']}</div></div>
+          <div class=\"hotspot\" style=\"{box_style('signature', current_clamped==5)}\"><div class=\"fill\">{fields['signature']}</div></div>
         </div>
         """
         st.markdown(check_html, unsafe_allow_html=True)
@@ -781,7 +728,10 @@ def render_check_we_do() -> None:
         st.markdown("#### We do — Semi-guided practice")
         st.caption("Type into each field. Corrections will appear below as you go.")
 
-        # Date
+        # Render background only
+        st.markdown('<div class="check-real"></div>', unsafe_allow_html=True)
+
+        # Inputs beneath the check (not duplicated on the face)
         st.text_input("Date (MM/DD/YYYY) (required)", key="we_date", placeholder="10/15/2025")
         ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
         if st.session_state.we_date:
@@ -868,9 +818,11 @@ def render_check_you_do() -> None:
     with st.container():
         st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
         st.markdown("#### You do — Independent practice")
-
         scenario = _get_scenarios()[scenario_idx]
         st.info(scenario["prompt"])  # Minimal prompting per requirements
+
+        # Background only, inputs below
+        st.markdown('<div class="check-real"></div>', unsafe_allow_html=True)
 
         st.text_input("Date (MM/DD/YYYY) (required)", key="you_date")
         st.text_input("Pay to the Order of (required)", key="you_payee")
