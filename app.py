@@ -151,6 +151,22 @@ def inject_global_styles() -> None:
         color: var(--color-navy-blue);
         font-weight: 600;
       }}
+      .field-hint {{
+        color: var(--color-navy-blue);
+        font-size: 14px;
+        margin-top: 4px;
+      }}
+      .field-error {{
+        color: var(--color-error-red);
+        font-size: 14px;
+        margin-top: 4px;
+      }}
+      .field-ok {{
+        color: var(--color-bright-blue);
+        font-size: 14px;
+        margin-top: 4px;
+        font-weight: 600;
+      }}
       .check-amount {{
         display: grid;
         grid-template-columns: 1fr 180px;
@@ -188,6 +204,16 @@ def _ensure_session_state_defaults() -> None:
         st.session_state._last_scenario = st.session_state.selected_scenario
     if "_last_mode" not in st.session_state:
         st.session_state._last_mode = st.session_state.mode
+    # Defaults for We do inputs
+    for key, default in [
+        ("we_date", ""),
+        ("we_payee", ""),
+        ("we_amount_numeric", ""),
+        ("we_amount_words", ""),
+        ("we_memo", ""),
+        ("we_signature", ""),
+    ]:
+        st.session_state.setdefault(key, default)
 
 
 def _get_scenarios() -> list[dict[str, str]]:
@@ -319,6 +345,16 @@ def render_controls() -> None:
         st.session_state.guided_step = -1
         st.session_state._last_scenario = st.session_state.selected_scenario
         st.session_state._last_mode = st.session_state.mode
+        # Clear We do inputs
+        for k in [
+            "we_date",
+            "we_payee",
+            "we_amount_numeric",
+            "we_amount_words",
+            "we_memo",
+            "we_signature",
+        ]:
+            st.session_state[k] = ""
 
 
 def render_check_static() -> None:
@@ -494,6 +530,129 @@ def render_check_guided() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
 
+def _normalize_text(value: str) -> str:
+    return " ".join(value.strip().lower().split())
+
+
+def _parse_currency(value: str) -> float | None:
+    try:
+        cleaned = value.replace("$", "").replace(",", "").strip()
+        return float(cleaned)
+    except Exception:
+        return None
+
+
+def _validate_date(value: str) -> tuple[bool, str | None]:
+    from datetime import datetime
+
+    formats = ["%m/%d/%Y", "%m/%d/%y", "%m-%d-%Y", "%m-%d-%y"]
+    for fmt in formats:
+        try:
+            datetime.strptime(value.strip(), fmt)
+            return True, None
+        except Exception:
+            pass
+    return False, "Use a valid date like 10/15/2025."
+
+
+def _validate_payee(value: str, expected: str) -> tuple[bool, str | None]:
+    if _normalize_text(value) == _normalize_text(expected):
+        return True, None
+    return False, f"Expected: {expected}"
+
+
+def _validate_amount_numeric(value: str, expected: str) -> tuple[bool, str | None]:
+    target = _parse_currency(expected)
+    got = _parse_currency(value)
+    if target is not None and got is not None and abs(target - got) < 0.005:
+        return True, None
+    return False, f"Expected: {expected}"
+
+
+def _validate_amount_words(value: str, expected: str) -> tuple[bool, str | None]:
+    if _normalize_text(value) == _normalize_text(expected):
+        return True, None
+    return False, f"Example: {expected}"
+
+
+def render_check_we_do() -> None:
+    scenario_idx = st.session_state.selected_scenario
+    guided = _get_guided_scenarios()[scenario_idx]
+    expected = {
+        "date": guided.get("date", ""),
+        "payee": guided.get("payee", ""),
+        "amount_numeric": guided.get("amount_numeric", ""),
+        "amount_words": guided.get("amount_words", ""),
+        "memo": guided.get("memo", ""),
+        "signature": guided.get("signature", ""),
+    }
+
+    with st.container():
+        st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
+        st.markdown("#### We do — Semi-guided practice")
+        st.caption("Type into each field. Corrections will appear below as you go.")
+
+        # Date
+        st.text_input("Date (MM/DD/YYYY)", key="we_date", placeholder="10/15/2025")
+        ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
+        if st.session_state.we_date:
+            st.markdown(
+                f"<div class='{'field-ok' if ok else 'field-error'}'>{'Looks good' if ok else msg}</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown("<div class='field-hint'>Enter today’s date.</div>", unsafe_allow_html=True)
+
+        # Payee
+        st.text_input("Pay to the Order of", key="we_payee", placeholder=expected["payee"])
+        if st.session_state.we_payee:
+            ok, msg = _validate_payee(st.session_state.we_payee, expected["payee"])
+            st.markdown(
+                f"<div class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown("<div class='field-hint'>Type the payee name exactly.</div>", unsafe_allow_html=True)
+
+        # Amount numeric
+        st.text_input("$ Amount (numeric)", key="we_amount_numeric", placeholder=expected["amount_numeric"])
+        if st.session_state.we_amount_numeric:
+            ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"])
+            st.markdown(
+                f"<div class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown("<div class='field-hint'>Include dollars and cents (e.g., 150.00).</div>", unsafe_allow_html=True)
+
+        # Amount in words
+        st.text_input("Amount in Words", key="we_amount_words", placeholder=expected["amount_words"])
+        if st.session_state.we_amount_words:
+            ok, msg = _validate_amount_words(st.session_state.we_amount_words, expected["amount_words"])
+            st.markdown(
+                f"<div class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown("<div class='field-hint'>Use words and cents as a fraction (xx/100).</div>", unsafe_allow_html=True)
+
+        # Memo (optional)
+        st.text_input("Memo (optional)", key="we_memo", placeholder=expected["memo"])
+        if st.session_state.we_memo:
+            st.markdown("<div class='field-ok'>Not required, but helpful.</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div class='field-hint'>Add a short note for your records.</div>", unsafe_allow_html=True)
+
+        # Signature
+        st.text_input("Signature", key="we_signature", placeholder="Your full name")
+        if st.session_state.we_signature:
+            st.markdown("<div class='field-ok'>Looks good</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div class='field-hint'>Sign your name as on your bank account.</div>", unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 def main() -> None:
     inject_global_styles()
     _ensure_session_state_defaults()
@@ -505,6 +664,8 @@ def main() -> None:
     with right:
         if st.session_state.mode == "I do":
             render_check_guided()
+        elif st.session_state.mode == "We do":
+            render_check_we_do()
         else:
             render_check_static()
 

@@ -145,10 +145,10 @@ Dates: Start ____ / End ____
 - Error style per `style-guide.md` (#D32F2F), aria-describedby for messages.
 
 **Tasks**
-- [ ] Build forms for date, payee, numeric, words, memo, signature
-- [ ] Implement validators for each field
-- [ ] Display validation messages inline with red icon/text
-- [ ] Ensure keyboard navigation and described-by associations
+- [x] Build forms for date, payee, numeric, words, memo, signature
+- [x] Implement validators for each field
+- [x] Display validation messages inline with red icon/text
+- [x] Ensure keyboard navigation and described-by associations
 
 **Acceptance Criteria**
 - [ ] Incorrect entries show red validations immediately
@@ -161,7 +161,7 @@ Dates: Start ____ / End ____
 **Artifacts**
 - Links: ____
 
-**Status**: Not Started
+**Status**: Complete
 Owner: ____
 
 ---
