@@ -39,23 +39,31 @@ st.set_page_config(
 
 
 def _get_check_bg_data_url() -> str | None:
-    """Return data URL for a background image if an assets/check.* file exists."""
-    candidates = [
-        Path("assets/check.png"),
-        Path("assets/check.jpg"),
-        Path("assets/check.jpeg"),
-        Path("assets/check.svg"),
-    ]
+    """Return data URL for a background image if an assets/check.* file exists (case-insensitive)."""
+    assets_dir = Path("assets")
+    if not assets_dir.exists():
+        return None
+    allowed_exts = {"png", "jpg", "jpeg", "svg", "webp"}
+    # Prefer files named exactly check.* but accept case-insensitive
+    candidates: list[Path] = []
+    for p in assets_dir.iterdir():
+        if not p.is_file():
+            continue
+        name_lower = p.name.lower()
+        ext = p.suffix.lower().strip(".")
+        if ext in allowed_exts and (name_lower == f"check.{ext}" or name_lower.startswith("check.")):
+            candidates.append(p)
+    # Stable order
+    candidates.sort(key=lambda x: x.name.lower())
     for p in candidates:
-        if p.exists():
-            suffix = p.suffix.lower().strip(".")
-            try:
-                data = p.read_bytes()
-                b64 = base64.b64encode(data).decode("utf-8")
-                mime = "image/svg+xml" if suffix == "svg" else f"image/{suffix}"
-                return f"data:{mime};base64,{b64}"
-            except Exception:
-                return None
+        ext = p.suffix.lower().strip(".")
+        try:
+            data = p.read_bytes()
+            b64 = base64.b64encode(data).decode("utf-8")
+            mime = "image/svg+xml" if ext == "svg" else f"image/{ext}"
+            return f"data:{mime};base64,{b64}"
+        except Exception:
+            continue
     return None
 
 
