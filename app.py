@@ -39,6 +39,9 @@ st.set_page_config(
 def inject_global_styles() -> None:
     """Inject CSS variables, fonts, focus styles, and basic layout tokens."""
     css = f"""
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       :root {{
         --color-royal-blue: {design_tokens.ROYAL_BLUE};
@@ -68,6 +71,42 @@ def inject_global_styles() -> None:
         color: var(--color-royal-blue);
         margin: 0;
       }}
+      h2 {{
+        font-family: {design_tokens.BODY_FONT};
+        font-weight: 700;
+        font-size: 36px;
+        color: var(--color-royal-blue);
+      }}
+      h3 {{
+        font-family: {design_tokens.BODY_FONT};
+        font-weight: 700;
+        font-size: 24px;
+        color: var(--color-royal-blue);
+      }}
+      h4 {{
+        font-family: {design_tokens.BODY_FONT};
+        font-weight: 700;
+        font-size: 20px;
+        text-transform: uppercase;
+        color: var(--color-royal-blue);
+      }}
+      h5 {{
+        font-family: {design_tokens.BODY_FONT};
+        font-weight: 700;
+        font-size: 18px;
+        text-transform: uppercase;
+        color: var(--color-royal-blue);
+      }}
+      h6 {{
+        font-family: {design_tokens.BODY_FONT};
+        font-weight: 700;
+        font-size: 16px;
+        text-transform: uppercase;
+        color: var(--color-royal-blue);
+      }}
+
+      /* Links */
+      a, .stMarkdown a {{ color: var(--color-royal-blue); font-size: 20px; }}
 
       /* Focus visibility for keyboard users */
       *:focus-visible {{
@@ -117,6 +156,18 @@ def inject_global_styles() -> None:
         font-weight: 700;
         border-radius: 6px;
         padding: 8px 16px;
+      }}
+
+      /* Tabs styling to match guide */
+      .stTabs [role="tab"] {{
+        background: var(--color-soft-blue-tint);
+        color: var(--color-royal-blue);
+        border-radius: 6px;
+        padding: 8px 12px;
+      }}
+      .stTabs [role="tab"][aria-selected="true"] {{
+        background: var(--color-bright-blue) !important;
+        color: #fff !important;
       }}
 
       /* Check visual */
@@ -636,7 +687,7 @@ def render_check_we_do() -> None:
         st.caption("Type into each field. Corrections will appear below as you go.")
 
         # Date
-        st.text_input("Date (MM/DD/YYYY)", key="we_date", placeholder="10/15/2025")
+        st.text_input("Date (MM/DD/YYYY) (required)", key="we_date", placeholder="10/15/2025")
         ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
         if st.session_state.we_date:
             st.markdown(
@@ -647,7 +698,7 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Enter today’s date.</div>", unsafe_allow_html=True)
 
         # Payee
-        st.text_input("Pay to the Order of", key="we_payee", placeholder=expected["payee"])
+        st.text_input("Pay to the Order of (required)", key="we_payee", placeholder=expected["payee"])
         if st.session_state.we_payee:
             ok, msg = _validate_payee(st.session_state.we_payee, expected["payee"])
             st.markdown(
@@ -658,7 +709,7 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Type the payee name exactly.</div>", unsafe_allow_html=True)
 
         # Amount numeric
-        st.text_input("$ Amount (numeric)", key="we_amount_numeric", placeholder=expected["amount_numeric"])
+        st.text_input("$ Amount (numeric) (required)", key="we_amount_numeric", placeholder=expected["amount_numeric"])
         if st.session_state.we_amount_numeric:
             ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"])
             st.markdown(
@@ -669,7 +720,7 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Include dollars and cents (e.g., 150.00).</div>", unsafe_allow_html=True)
 
         # Amount in words
-        st.text_input("Amount in Words", key="we_amount_words", placeholder=expected["amount_words"])
+        st.text_input("Amount in Words (required)", key="we_amount_words", placeholder=expected["amount_words"])
         if st.session_state.we_amount_words:
             ok, msg = _validate_amount_words(st.session_state.we_amount_words, expected["amount_words"])
             st.markdown(
@@ -726,10 +777,10 @@ def render_check_you_do() -> None:
         scenario = _get_scenarios()[scenario_idx]
         st.info(scenario["prompt"])  # Minimal prompting per requirements
 
-        st.text_input("Date (MM/DD/YYYY)", key="you_date")
-        st.text_input("Pay to the Order of", key="you_payee")
-        st.text_input("$ Amount (numeric)", key="you_amount_numeric")
-        st.text_input("Amount in Words", key="you_amount_words")
+        st.text_input("Date (MM/DD/YYYY) (required)", key="you_date")
+        st.text_input("Pay to the Order of (required)", key="you_payee")
+        st.text_input("$ Amount (numeric) (required)", key="you_amount_numeric")
+        st.text_input("Amount in Words (required)", key="you_amount_words")
         st.text_input("Memo (optional)", key="you_memo")
         st.text_input("Signature", key="you_signature")
 
