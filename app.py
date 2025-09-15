@@ -170,42 +170,72 @@ def inject_global_styles() -> None:
         color: #fff !important;
       }}
 
-      /* Check visual */
-      .check {{
-        width: 100%;
+      /* Check visual - realistic layout */
+      .check-real {{
+        width: 760px;
+        max-width: 100%;
         background: #fff;
         border: 2px solid var(--color-light-gray-blue);
         border-radius: 12px;
-        padding: 20px;
+        padding: 16px 20px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.04);
       }}
       .check-row {{
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 260px;
         gap: 12px;
-        margin-bottom: 12px;
+        align-items: end;
+        margin-bottom: 14px;
       }}
+      .check-row.words {{ grid-template-columns: 1fr 100px; align-items: center; }}
+      .check-row.bottom {{ grid-template-columns: 1fr 1fr; margin-top: 10px; }}
       .check-label {{
         font-weight: 600;
         color: var(--color-navy-blue);
+        font-size: 14px;
         margin-bottom: 4px;
       }}
-      .check-box {{
-        height: 40px;
-        border: 1px solid var(--color-light-gray-blue);
-        border-radius: 8px;
-        background: var(--color-soft-blue-tint);
+      .line {{
+        border-bottom: 2px solid var(--color-light-gray-blue);
+        height: 34px;
         position: relative;
+        border-radius: 2px;
       }}
-      .check-box.wide {{ height: 56px; }}
-      .check-fill {{
+      .fill {{
         position: absolute;
-        inset: 0;
+        left: 10px;
+        right: 10px;
+        bottom: 4px;
+        color: var(--color-navy-blue);
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }}
+      .amount-box {{
+        height: 40px;
+        border: 2px solid var(--color-light-gray-blue);
+        border-radius: 6px;
         display: flex;
         align-items: center;
         padding: 0 10px;
+        justify-content: flex-end;
+        font-weight: 700;
         color: var(--color-navy-blue);
-        font-weight: 600;
+      }}
+      .dollars-label {{
+        color: var(--color-navy-blue);
+        font-weight: 700;
+        text-transform: uppercase;
+        justify-self: end;
+      }}
+      .micr {{
+        margin-top: 12px;
+        color: var(--color-navy-blue);
+        letter-spacing: 2px;
+        opacity: 0.5;
+        font-size: 14px;
+        text-align: center;
       }}
       .field-hint {{
         color: var(--color-navy-blue);
@@ -223,13 +253,8 @@ def inject_global_styles() -> None:
         margin-top: 4px;
         font-weight: 600;
       }}
-      .check-amount {{
-        display: grid;
-        grid-template-columns: 1fr 180px;
-        gap: 12px;
-      }}
       @media (max-width: 480px) {{
-        .check-row, .check-amount {{ grid-template-columns: 1fr; }}
+        .check-row {{ grid-template-columns: 1fr; }}
       }}
     </style>
     """
@@ -458,41 +483,44 @@ def render_check_static() -> None:
         st.markdown("#### Scenario", help="Use this prompt to fill out the check in later sprints.")
         st.info(scenario["prompt"])
 
-        # Static visual of a check
+        # Static visual of a check (realistic layout)
         check_html = """
-        <div class="check" role="group" aria-label="Check fields (static)">
+        <div class="check-real" role="group" aria-label="Check fields (static)">
           <div class="check-row">
             <div>
               <div class="check-label">Date</div>
-              <div class="check-box"></div>
-            </div>
-            <div>
-              <div class="check-label">Pay to the Order of</div>
-              <div class="check-box"></div>
-            </div>
-          </div>
-
-          <div class="check-amount">
-            <div>
-              <div class="check-label">Amount in Words</div>
-              <div class="check-box wide"></div>
+              <div class="line"></div>
             </div>
             <div>
               <div class="check-label">$ Amount</div>
-              <div class="check-box"></div>
+              <div class="amount-box"></div>
             </div>
           </div>
-
-          <div class="check-row">
+          <div class="check-row words">
+            <div>
+              <div class="check-label">Pay to the Order of</div>
+              <div class="line"></div>
+            </div>
+            <div class="dollars-label">Dollars</div>
+          </div>
+          <div class="check-row words">
+            <div>
+              <div class="check-label">Amount in Words</div>
+              <div class="line"></div>
+            </div>
+            <div></div>
+          </div>
+          <div class="check-row bottom">
             <div>
               <div class="check-label">Memo</div>
-              <div class="check-box"></div>
+              <div class="line"></div>
             </div>
             <div>
               <div class="check-label">Signature</div>
-              <div class="check-box"></div>
+              <div class="line"></div>
             </div>
           </div>
+          <div class="micr">||:123456789||: 1234567890 ||· 0123</div>
         </div>
         """
         st.markdown(check_html, unsafe_allow_html=True)
@@ -568,39 +596,44 @@ def render_check_guided() -> None:
         progress_ratio = 0.0 if current_clamped < 0 else (current_clamped + 1) / total_steps
         st.progress(progress_ratio, text=f"Step {max(0, current_clamped + 1)} of {total_steps}")
 
-        # Check with filled fields
+        # Check with filled fields (realistic layout)
         check_html = f"""
-        <div class=\"check\" role=\"group\" aria-label=\"Check fields (guided)\"> 
+        <div class=\"check-real\" role=\"group\" aria-label=\"Check fields (guided)\"> 
           <div class=\"check-row\"> 
             <div>
               <div class=\"check-label\">Date</div>
-              <div class=\"check-box\"><div class=\"check-fill\">{fields['date']}</div></div>
-            </div>
-            <div>
-              <div class=\"check-label\">Pay to the Order of</div>
-              <div class=\"check-box\"><div class=\"check-fill\">{fields['payee']}</div></div>
-            </div>
-          </div>
-          <div class=\"check-amount\">
-            <div>
-              <div class=\"check-label\">Amount in Words</div>
-              <div class=\"check-box wide\"><div class=\"check-fill\">{fields['amount_words']}</div></div>
+              <div class=\"line\"><div class=\"fill\">{fields['date']}</div></div>
             </div>
             <div>
               <div class=\"check-label\">$ Amount</div>
-              <div class=\"check-box\"><div class=\"check-fill\">{fields['amount_numeric']}</div></div>
+              <div class=\"amount-box\">{fields['amount_numeric']}</div>
             </div>
           </div>
-          <div class=\"check-row\">
+          <div class=\"check-row words\">
+            <div>
+              <div class=\"check-label\">Pay to the Order of</div>
+              <div class=\"line\"><div class=\"fill\">{fields['payee']}</div></div>
+            </div>
+            <div class=\"dollars-label\">Dollars</div>
+          </div>
+          <div class=\"check-row words\">
+            <div>
+              <div class=\"check-label\">Amount in Words</div>
+              <div class=\"line\"><div class=\"fill\">{fields['amount_words']}</div></div>
+            </div>
+            <div></div>
+          </div>
+          <div class=\"check-row bottom\">
             <div>
               <div class=\"check-label\">Memo</div>
-              <div class=\"check-box\"><div class=\"check-fill\">{fields['memo']}</div></div>
+              <div class=\"line\"><div class=\"fill\">{fields['memo']}</div></div>
             </div>
             <div>
               <div class=\"check-label\">Signature</div>
-              <div class=\"check-box\"><div class=\"check-fill\">{fields['signature']}</div></div>
+              <div class=\"line\"><div class=\"fill\">{fields['signature']}</div></div>
             </div>
           </div>
+          <div class=\"micr\">||:123456789||: 1234567890 ||· 0123</div>
         </div>
         """
         st.markdown(check_html, unsafe_allow_html=True)
@@ -709,7 +742,7 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Type the payee name exactly.</div>", unsafe_allow_html=True)
 
         # Amount numeric
-        st.text_input("$ Amount (numeric) (required)", key="we_amount_numeric", placeholder=expected["amount_numeric"])
+        st.text_input("$ Amount (numeric) (required)", key="we_amount_numeric", placeholder=expected["amount_numeric"]) 
         if st.session_state.we_amount_numeric:
             ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"])
             st.markdown(
@@ -720,7 +753,7 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Include dollars and cents (e.g., 150.00).</div>", unsafe_allow_html=True)
 
         # Amount in words
-        st.text_input("Amount in Words (required)", key="we_amount_words", placeholder=expected["amount_words"])
+        st.text_input("Amount in Words (required)", key="we_amount_words", placeholder=expected["amount_words"]) 
         if st.session_state.we_amount_words:
             ok, msg = _validate_amount_words(st.session_state.we_amount_words, expected["amount_words"])
             st.markdown(
