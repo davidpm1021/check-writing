@@ -39,10 +39,8 @@ st.set_page_config(
 def inject_global_styles() -> None:
     """Inject CSS variables, fonts, focus styles, and basic layout tokens."""
     css = f"""
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=PT+Sans:wght@700&family=Montserrat:wght@400;500;700&display=swap');
       :root {{
         --color-royal-blue: {design_tokens.ROYAL_BLUE};
         --color-navy-blue: {design_tokens.NAVY_BLUE};
@@ -62,6 +60,8 @@ def inject_global_styles() -> None:
       /* Base typography */
       html, body, [data-testid="stAppViewContainer"] * {{
         font-family: {design_tokens.BODY_FONT};
+        font-size: 18px;
+        line-height: 1.4;
       }}
       h1 {{
         font-family: {design_tokens.HEADLINE_FONT};
