@@ -504,7 +504,7 @@ def _reset_all_state() -> None:
 
 
 def _ensure_flow_defaults() -> None:
-    st.session_state.setdefault("screen", "scenario")  # scenario -> i_do -> we_do -> you_do
+    st.session_state.setdefault("screen", "i_do")  # i_do -> we_do -> you_do
     st.session_state.setdefault("selected_scenario", 0)
     st.session_state.setdefault("guided_step", -1)
     st.session_state.setdefault("mode", "I do")
@@ -545,9 +545,9 @@ def render_top_nav() -> None:
                 _reset_all_state()
                 st.rerun()
         with cols[1]:
-            step_map = {"scenario": 0, "i_do": 1, "we_do": 2, "you_do": 3}
-            current = step_map.get(st.session_state.screen, 0)
-            st.progress(current / 3.0, text=f"Step {current}/3" if current else "Pick a scenario")
+            step_map = {"i_do": 1, "we_do": 2, "you_do": 3}
+            current = step_map.get(st.session_state.screen, 1)
+            st.progress(current / 3.0, text=f"Step {current}/3")
         with cols[2]:
             back_enabled = st.session_state.screen in {"we_do", "you_do"}
             if st.button("Back", disabled=not back_enabled):
@@ -968,9 +968,7 @@ def main() -> None:
     render_top_nav()
 
     screen = st.session_state.screen
-    if screen == "scenario":
-        render_scenario_screen()
-    elif screen == "i_do":
+    if screen == "i_do":
         # auto-fill walkthrough
         st.session_state.mode = "I do"
         render_check_guided()
