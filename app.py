@@ -482,67 +482,56 @@ def _get_guided_scenarios() -> list[dict]:
     ]
 
 
-def render_controls() -> None:
+def _reset_all_state() -> None:
+    for k in list(st.session_state.keys()):
+        del st.session_state[k]
+
+
+def _ensure_flow_defaults() -> None:
+    st.session_state.setdefault("screen", "scenario")  # scenario -> i_do -> we_do -> you_do
+    st.session_state.setdefault("selected_scenario", 0)
+    st.session_state.setdefault("guided_step", -1)
+    st.session_state.setdefault("mode", "I do")
+
+
+def render_top_nav() -> None:
     with st.container():
         st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
-        st.markdown('<div class="ngpf-controls" role="region" aria-label="Controls">', unsafe_allow_html=True)
-        scenarios = _get_scenarios()
-        scenario_titles = [s["title"] for s in scenarios]
-        st.session_state.selected_scenario = st.selectbox(
-            "Scenario",
-            options=list(range(len(scenario_titles))),
-            format_func=lambda i: scenario_titles[i],
-            index=st.session_state.selected_scenario,
-            help="Pick a built-in example to practice.",
-        )
-
-        tabs = st.tabs(["I do", "We do", "You do"])
-        with tabs[0]:
-            st.session_state.mode = "I do"
-            st.caption("Guided walkthrough — auto-fills with explanations.")
-        with tabs[1]:
-            st.session_state.mode = "We do"
-            st.caption("Semi-guided — prompts, hints, and inline corrections.")
-        with tabs[2]:
-            st.session_state.mode = "You do"
-            st.caption("Independent practice — minimal prompts with inline correction.")
-
-        if st.button("Reset", type="secondary", help="Clear and start over"):
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.rerun()
-
-        st.markdown("</div>", unsafe_allow_html=True)
+        cols = st.columns([1, 3, 1])
+        with cols[0]:
+            if st.button("Reset", type="secondary"):
+                _reset_all_state()
+                st.rerun()
+        with cols[1]:
+            step_map = {"scenario": 0, "i_do": 1, "we_do": 2, "you_do": 3}
+            current = step_map.get(st.session_state.screen, 0)
+            st.progress(current / 3.0, text=f"Step {current}/3" if current else "Pick a scenario")
+        with cols[2]:
+            back_enabled = st.session_state.screen in {"we_do", "you_do"}
+            if st.button("Back", disabled=not back_enabled):
+                if st.session_state.screen == "we_do":
+                    st.session_state.screen = "i_do"
+                elif st.session_state.screen == "you_do":
+                    st.session_state.screen = "we_do"
+                st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Detect scenario or mode changes to reset guided state
-    if (
-        st.session_state.selected_scenario != st.session_state._last_scenario
-        or st.session_state.mode != st.session_state._last_mode
-    ):
-        st.session_state.guided_step = -1
-        st.session_state._last_scenario = st.session_state.selected_scenario
-        st.session_state._last_mode = st.session_state.mode
-        # Clear We do inputs
-        for k in [
-            "we_date",
-            "we_payee",
-            "we_amount_numeric",
-            "we_amount_words",
-            "we_memo",
-            "we_signature",
-        ]:
-            st.session_state[k] = ""
-        # Clear You do inputs
-        for k in [
-            "you_date",
-            "you_payee",
-            "you_amount_numeric",
-            "you_amount_words",
-            "you_memo",
-            "you_signature",
-        ]:
-            st.session_state[k] = ""
+
+def render_scenario_screen() -> None:
+    scenarios = _get_scenarios()
+    with st.container():
+        st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
+        st.markdown("### Choose a scenario")
+        rows = st.columns(3)
+        for i, sc in enumerate(scenarios):
+            col = rows[i % 3]
+            with col:
+                if st.button(sc["title"], key=f"scenario_{i}"):
+                    st.session_state.selected_scenario = i
+                    st.session_state.screen = "i_do"
+                    st.session_state.guided_step = -1
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_check_static() -> None:
@@ -943,18 +932,38 @@ def render_check_you_do() -> None:
 def main() -> None:
     inject_global_styles()
     _ensure_session_state_defaults()
+    _ensure_flow_defaults()
     render_header()
-    # Layout: controls left, check right
-    left, right = st.columns([1, 2], gap="large")
-    with left:
-        render_controls()
-    with right:
-        if st.session_state.mode == "I do":
-            render_check_guided()
-        elif st.session_state.mode == "We do":
-            render_check_we_do()
-        else:
-            render_check_you_do()
+    render_top_nav()
+
+    screen = st.session_state.screen
+    if screen == "scenario":
+        render_scenario_screen()
+    elif screen == "i_do":
+        # auto-fill walkthrough
+        st.session_state.mode = "I do"
+        render_check_guided()
+        cols = st.columns([1, 1, 6])
+        with cols[0]:
+            if st.button("Next: We do", type="primary"):
+                st.session_state.screen = "we_do"
+                st.rerun()
+    elif screen == "we_do":
+        st.session_state.mode = "We do"
+        render_check_we_do()
+        cols = st.columns([1, 1, 6])
+        with cols[0]:
+            if st.button("Next: You do", type="primary"):
+                st.session_state.screen = "you_do"
+                st.rerun()
+    elif screen == "you_do":
+        st.session_state.mode = "You do"
+        render_check_you_do()
+        cols = st.columns([1, 1, 6])
+        with cols[0]:
+            if st.button("Finish", type="primary"):
+                st.session_state.screen = "scenario"
+                st.rerun()
 
 
 if __name__ == "__main__":
