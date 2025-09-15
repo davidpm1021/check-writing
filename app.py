@@ -485,11 +485,11 @@ def _get_scenarios() -> list[dict[str, str]]:
         },
         {
             "title": "Monthly Rent — $1,200",
-            "prompt": "Write a check to Oakwood Apartments for $1,200.00.",
+            "prompt": "Write a check to Oakwood Apartments for $1,200.00 due on the first of the month.",
         },
         {
-            "title": "Utilities — $86.45",
-            "prompt": "Write a check to City Utilities for $86.45.",
+            "title": "Field Trip Donation — $86.45",
+            "prompt": "Write a check to Lincoln High PTA for $86.45 to cover a field trip fee.",
         },
         {
             "title": "Grocery Store — $64.32",
@@ -557,21 +557,34 @@ def _get_guided_scenarios() -> list[dict]:
         },
         {
             "title": "Monthly Rent — $1,200",
+            "context": (
+                "Scenario: Rent is due on the 1st. John pays Oakwood Apartments $1,200.00 for November rent."
+            ),
             "amount_numeric": "$1,200.00",
             "amount_words": "One thousand two hundred dollars and 00/100",
             "payee": "Oakwood Apartments",
-            "date": "10/01/2025",
-            "memo": "October rent",
+            "date": "11/01/2025",
+            "memo": "November rent",
             "signature": "John Doe",
-            "steps": [],  # Fallback to auto from fields if needed later
+            "steps": [
+                {"field": "date", "value": "11/01/2025", "explanation": "Rent is due on the 1st of the month."},
+                {"field": "payee", "value": "Oakwood Apartments", "explanation": "Enter the apartment name exactly."},
+                {"field": "amount_numeric", "value": "$1,200.00", "explanation": "Write the full amount with .00 cents."},
+                {"field": "amount_words", "value": "One thousand two hundred dollars and 00/100", "explanation": "Write the amount in words with the cents fraction."},
+                {"field": "memo", "value": "November rent", "explanation": "Memo helps you remember the purpose."},
+                {"field": "signature", "value": "John Doe", "explanation": "Sign your name to authorize payment."},
+            ],
         },
         {
-            "title": "Utilities — $86.45",
+            "title": "Field Trip Donation — $86.45",
+            "context": (
+                "Scenario: John donates to the school PTA to cover a field trip fee for a relative."
+            ),
             "amount_numeric": "$86.45",
             "amount_words": "Eighty-six dollars and 45/100",
-            "payee": "City Utilities",
-            "date": "10/10/2025",
-            "memo": "Account 12345",
+            "payee": "Lincoln High PTA",
+            "date": "10/20/2025",
+            "memo": "Field trip fee",
             "signature": "John Doe",
             "steps": [],
         },
@@ -729,7 +742,7 @@ def _compute_filled_fields(scenario_idx: int, step_index: int) -> dict[str, str]
 
 
 def render_check_guided() -> None:
-    scenario_idx = st.session_state.selected_scenario
+    scenario_idx = 0  # I do uses first scenario
     guided = _get_guided_scenarios()[scenario_idx]
     steps = guided.get("steps") or [
         {"field": "date", "value": guided.get("date", ""), "explanation": "Date"},
@@ -893,7 +906,7 @@ def _validate_amount_words(value: str, expected: str) -> tuple[bool, str | None]
 
 
 def render_check_we_do() -> None:
-    scenario_idx = st.session_state.selected_scenario
+    scenario_idx = 1  # We do uses second scenario (guided with prompts)
     guided = _get_guided_scenarios()[scenario_idx]
     expected = {
         "date": guided.get("date", ""),
@@ -997,7 +1010,7 @@ def render_check_we_do() -> None:
 
 
 def render_check_you_do() -> None:
-    scenario_idx = st.session_state.selected_scenario
+    scenario_idx = 2  # You do uses third scenario (independent)
     guided = _get_guided_scenarios()[scenario_idx]
     expected = {
         "date": guided.get("date", ""),
