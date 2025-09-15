@@ -340,6 +340,19 @@ def inject_global_styles() -> None:
     st.markdown(css, unsafe_allow_html=True)
 
 
+def _check_overlay_component(bg_url: str | None, positions: dict, values: dict, editable: bool, highlight: str | None = None) -> dict:
+    """Render the overlay component and return updated values when edited."""
+    # Streamlit components API
+    import streamlit.components.v1 as components
+
+    comp = components.declare_component(
+        "check_overlay",
+        path=str(Path("components/check_overlay")),
+    )
+    result = comp(bg_url=bg_url, positions=positions, values=values, editable=editable, highlight=highlight or "")
+    return result or values
+
+
 def render_header() -> None:
     header_html = """
     <div class="ngpf-header" role="banner">
@@ -662,24 +675,16 @@ def render_check_guided() -> None:
         # Percent-based hotspot positions to align with typical personal check layout
         positions = _load_overlay_positions()
 
-        def box_style(key: str, active: bool) -> str:
-            p = positions[key]
-            bg = "background: rgba(39,92,228,0.08);" if active else ""
-            return (
-                f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%; {bg}"
-            )
-
-        check_html = f"""
-        <div class=\"check-real\" role=\"group\" aria-label=\"Check fields (guided)\"> 
-          <div class=\"hotspot\" style=\"{box_style('date', current_clamped==0)}\"><div class=\"fill\">{fields['date']}</div></div>
-          <div class=\"hotspot\" style=\"{box_style('payee', current_clamped==1)}\"><div class=\"fill\">{fields['payee']}</div></div>
-          <div class=\"hotspot\" style=\"{box_style('amount_numeric', current_clamped==2)}\"><div class=\"fill\" style=\"right:10px; left:auto;\">{fields['amount_numeric']}</div></div>
-          <div class=\"hotspot\" style=\"{box_style('amount_words', current_clamped==3)}\"><div class=\"fill\">{fields['amount_words']}</div></div>
-          <div class=\"hotspot\" style=\"{box_style('memo', current_clamped==4)}\"><div class=\"fill\">{fields['memo']}</div></div>
-          <div class=\"hotspot\" style=\"{box_style('signature', current_clamped==5)}\"><div class=\"fill\">{fields['signature']}</div></div>
-        </div>
-        """
-        st.markdown(check_html, unsafe_allow_html=True)
+        bg = _get_check_bg_data_url()
+        values = {
+            "date": fields["date"],
+            "payee": fields["payee"],
+            "amount_numeric": fields["amount_numeric"],
+            "amount_words": fields["amount_words"],
+            "memo": fields["memo"],
+            "signature": fields["signature"],
+        }
+        _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=False, highlight=steps[current_clamped]["field"] if current_clamped>=0 else None)
 
         # Explanation for current step
         if current_clamped >= 0:
@@ -762,11 +767,18 @@ def render_check_we_do() -> None:
         st.markdown("#### We do — Semi-guided practice")
         st.caption("Type into each field. Corrections will appear below as you go.")
 
-        # Render background only
-        st.markdown('<div class="check-real"></div>', unsafe_allow_html=True)
-
-        # Inputs beneath the check (not duplicated on the face)
-        st.text_input("Date (MM/DD/YYYY) (required)", key="we_date", placeholder="10/15/2025")
+        bg = _get_check_bg_data_url()
+        positions = _load_overlay_positions()
+        values = {
+            "date": st.session_state.we_date,
+            "payee": st.session_state.we_payee,
+            "amount_numeric": st.session_state.we_amount_numeric,
+            "amount_words": st.session_state.we_amount_words,
+            "memo": st.session_state.we_memo,
+            "signature": st.session_state.we_signature,
+        }
+        updated = _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=True)
+        st.session_state.we_date = updated.get("date", "")
         ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
         if st.session_state.we_date:
             st.markdown(
@@ -777,7 +789,7 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Enter today’s date.</div>", unsafe_allow_html=True)
 
         # Payee
-        st.text_input("Pay to the Order of (required)", key="we_payee", placeholder=expected["payee"])
+        st.session_state.we_payee = updated.get("payee", "")
         if st.session_state.we_payee:
             ok, msg = _validate_payee(st.session_state.we_payee, expected["payee"])
             st.markdown(
@@ -788,7 +800,7 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Type the payee name exactly.</div>", unsafe_allow_html=True)
 
         # Amount numeric
-        st.text_input("$ Amount (numeric) (required)", key="we_amount_numeric", placeholder=expected["amount_numeric"]) 
+        st.session_state.we_amount_numeric = updated.get("amount_numeric", "") 
         if st.session_state.we_amount_numeric:
             ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"])
             st.markdown(
@@ -799,7 +811,7 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Include dollars and cents (e.g., 150.00).</div>", unsafe_allow_html=True)
 
         # Amount in words
-        st.text_input("Amount in Words (required)", key="we_amount_words", placeholder=expected["amount_words"]) 
+        st.session_state.we_amount_words = updated.get("amount_words", "") 
         if st.session_state.we_amount_words:
             ok, msg = _validate_amount_words(st.session_state.we_amount_words, expected["amount_words"])
             st.markdown(
@@ -810,14 +822,14 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Use words and cents as a fraction (xx/100).</div>", unsafe_allow_html=True)
 
         # Memo (optional)
-        st.text_input("Memo (optional)", key="we_memo", placeholder=expected["memo"])
+        st.session_state.we_memo = updated.get("memo", "")
         if st.session_state.we_memo:
             st.markdown("<div class='field-ok'>Not required, but helpful.</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='field-hint'>Add a short note for your records.</div>", unsafe_allow_html=True)
 
         # Signature
-        st.text_input("Signature", key="we_signature", placeholder="Your full name")
+        st.session_state.we_signature = updated.get("signature", "")
         if st.session_state.we_signature:
             st.markdown("<div class='field-ok'>Looks good</div>", unsafe_allow_html=True)
         else:
@@ -855,15 +867,23 @@ def render_check_you_do() -> None:
         scenario = _get_scenarios()[scenario_idx]
         st.info(scenario["prompt"])  # Minimal prompting per requirements
 
-        # Background only, inputs below
-        st.markdown('<div class="check-real"></div>', unsafe_allow_html=True)
-
-        st.text_input("Date (MM/DD/YYYY) (required)", key="you_date")
-        st.text_input("Pay to the Order of (required)", key="you_payee")
-        st.text_input("$ Amount (numeric) (required)", key="you_amount_numeric")
-        st.text_input("Amount in Words (required)", key="you_amount_words")
-        st.text_input("Memo (optional)", key="you_memo")
-        st.text_input("Signature", key="you_signature")
+        positions = _load_overlay_positions()
+        bg = _get_check_bg_data_url()
+        values = {
+            "date": st.session_state.you_date,
+            "payee": st.session_state.you_payee,
+            "amount_numeric": st.session_state.you_amount_numeric,
+            "amount_words": st.session_state.you_amount_words,
+            "memo": st.session_state.you_memo,
+            "signature": st.session_state.you_signature,
+        }
+        updated = _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=True)
+        st.session_state.you_date = updated.get("date", "")
+        st.session_state.you_payee = updated.get("payee", "")
+        st.session_state.you_amount_numeric = updated.get("amount_numeric", "")
+        st.session_state.you_amount_words = updated.get("amount_words", "")
+        st.session_state.you_memo = updated.get("memo", "")
+        st.session_state.you_signature = updated.get("signature", "")
 
         cols = st.columns([1, 1, 6])
         show_summary = False

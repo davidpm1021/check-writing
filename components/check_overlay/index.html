@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://unpkg.com/streamlit-component-lib@1.5.0/dist/index.js"></script>
+    <style>
+      :root {
+        --blue: #275ce4;
+        --navy: #0b1541;
+        --border: rgba(0,0,0,0.15);
+      }
+      body { margin: 0; font-family: Montserrat, sans-serif; }
+      .check { position: relative; width: 920px; max-width: 100%; aspect-ratio: 2.2 / 1; border: 2px solid var(--border); border-radius: 12px; overflow: hidden; background-size: cover; background-position: center; }
+      .box { position: absolute; border-radius: 6px; }
+      .box.highlight { outline: 2px solid var(--blue); outline-offset: 2px; }
+      .box input, .box textarea { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; outline: none; background: rgba(255,255,255,0.02); color: var(--navy); font-weight: 600; padding: 6px 10px; box-sizing: border-box; font-size: 16px; }
+      .box.readonly { pointer-events: none; }
+      .box.readonly .value { position: absolute; inset: 0; padding: 6px 10px; font-weight: 700; color: var(--navy); display: flex; align-items: center; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      const { Streamlit } = window;
+      let firstRender = true;
+
+      function percent(v){ return `${v}%`; }
+
+      function render(args){
+        const root = document.getElementById('root');
+        root.innerHTML = '';
+        const cont = document.createElement('div');
+        cont.className = 'check';
+        if (args.bg_url) cont.style.backgroundImage = `url(${args.bg_url})`;
+        root.appendChild(cont);
+
+        const values = Object.assign({}, args.values || {});
+        const positions = args.positions || {};
+        const editable = !!args.editable;
+        const highlight = args.highlight || '';
+
+        const fields = ['date','payee','amount_numeric','amount_words','memo','signature'];
+        fields.forEach((key) => {
+          const p = positions[key];
+          if (!p) return;
+          const box = document.createElement('div');
+          box.className = 'box' + (editable ? '' : ' readonly') + (highlight === key ? ' highlight' : '');
+          box.style.left = percent(p.left);
+          box.style.top = percent(p.top);
+          box.style.width = percent(p.width);
+          box.style.height = percent(p.height);
+
+          if (editable){
+            const input = document.createElement(key === 'amount_words' ? 'textarea' : 'input');
+            input.value = values[key] || '';
+            input.addEventListener('input', () => {
+              values[key] = input.value;
+              Streamlit.setComponentValue(values);
+            });
+            box.appendChild(input);
+          } else {
+            const span = document.createElement('div');
+            span.className = 'value';
+            span.textContent = values[key] || '';
+            box.appendChild(span);
+          }
+          cont.appendChild(box);
+        });
+
+        Streamlit.setFrameHeight(document.body.scrollHeight);
+      }
+
+      function onRender(event){ render(event.detail.args || {}); }
+      Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+      Streamlit.setComponentReady();
+      if (firstRender){ Streamlit.setFrameHeight(document.body.scrollHeight); firstRender=false; }
+    </script>
+  </body>
+  </html>
+
+
