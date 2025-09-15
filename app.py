@@ -79,7 +79,7 @@ def inject_global_styles() -> None:
     )
     css = f"""
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=PT+Sans:wght@700&family=Montserrat:wght@400;500;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=PT+Sans:wght@700&family=Montserrat:wght@400;500;700&family=Dancing+Script:wght@700&display=swap');
       :root {{
         --color-royal-blue: {design_tokens.ROYAL_BLUE};
         --color-navy-blue: {design_tokens.NAVY_BLUE};
@@ -269,6 +269,11 @@ def inject_global_styles() -> None:
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }}
+      .signature-text {{
+        font-family: 'Dancing Script', cursive;
+        font-weight: 700;
+        font-size: 28px;
       }}
       .amount-box {{
         height: 40px;
@@ -728,10 +733,12 @@ def render_check_guided() -> None:
         parts = ["<div class='check-real'>"]
         parts.append(f"<div class='hotspot' style='{style_box('date', current_clamped==0)}'><div class='fill'>{fields['date']}</div></div>")
         parts.append(f"<div class='hotspot' style='{style_box('payee', current_clamped==1)}'><div class='fill'>{fields['payee']}</div></div>")
-        parts.append(f"<div class='hotspot' style='{style_box('amount_numeric', current_clamped==2)}'><div class='fill' style='right:10px; left:auto;'>{fields['amount_numeric']}</div></div>")
+        # Remove leading $ if present, since the check already shows it
+        amt = fields['amount_numeric'].lstrip('$').strip()
+        parts.append(f"<div class='hotspot' style='{style_box('amount_numeric', current_clamped==2)}'><div class='fill' style='right:10px; left:auto;'>{amt}</div></div>")
         parts.append(f"<div class='hotspot' style='{style_box('amount_words', current_clamped==3)}'><div class='fill'>{fields['amount_words']}</div></div>")
         parts.append(f"<div class='hotspot' style='{style_box('memo', current_clamped==4)}'><div class='fill'>{fields['memo']}</div></div>")
-        parts.append(f"<div class='hotspot' style='{style_box('signature', current_clamped==5)}'><div class='fill'>{fields['signature']}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('signature', current_clamped==5)}'><div class='fill signature-text'>{fields['signature']}</div></div>")
         # Popover tip near the active field
         if current_clamped >= 0:
             active = steps[current_clamped]["field"]
@@ -882,7 +889,8 @@ def render_check_we_do() -> None:
             st.markdown("<div class='field-hint'>Type the payee name exactly.</div>", unsafe_allow_html=True)
 
         # Amount numeric
-        st.session_state.we_amount_numeric = updated.get("amount_numeric", "") 
+        # strip leading $
+        st.session_state.we_amount_numeric = updated.get("amount_numeric", "").lstrip('$').strip() 
         if st.session_state.we_amount_numeric:
             ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"])
             st.markdown(
@@ -975,7 +983,7 @@ def render_check_you_do() -> None:
             updated = values
         st.session_state.you_date = updated.get("date", "")
         st.session_state.you_payee = updated.get("payee", "")
-        st.session_state.you_amount_numeric = updated.get("amount_numeric", "")
+        st.session_state.you_amount_numeric = updated.get("amount_numeric", "").lstrip('$').strip()
         st.session_state.you_amount_words = updated.get("amount_words", "")
         st.session_state.you_memo = updated.get("memo", "")
         st.session_state.you_signature = updated.get("signature", "")
