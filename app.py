@@ -441,8 +441,8 @@ def _ensure_session_state_defaults() -> None:
 def _get_scenarios() -> list[dict[str, str]]:
     return [
         {
-            "title": "Plumbing Ink 123 — $150",
-            "prompt": "Write a check to Plumbing Ink 123 for $150.00.",
+            "title": "Plumbing Inc — $150",
+            "prompt": "Write a check to Plumbing Inc for $150.00.",
         },
         {
             "title": "Monthly Rent — $1,200",
@@ -471,15 +471,15 @@ def _get_guided_scenarios() -> list[dict]:
     """
     return [
         {
-            "title": "Plumbing Ink 123 — $150",
+            "title": "Plumbing Inc — $150",
             "context": (
-                "Scenario: John Doe hired Plumbing Ink 123 to fix a leaking kitchen faucet. "
+                "Scenario: John Doe hired Plumbing Inc to fix a leaking kitchen faucet. "
                 "The service was completed today and the invoice total is $150.00. John will "
                 "write a check to pay the plumber before the technician leaves."
             ),
             "amount_numeric": "$150.00",
             "amount_words": "One hundred fifty dollars and 00/100",
-            "payee": "Plumbing Ink 123",
+            "payee": "Plumbing Inc",
             "date": "10/15/2025",
             "memo": "Service call",
             "signature": "John Doe",
@@ -491,7 +491,7 @@ def _get_guided_scenarios() -> list[dict]:
                 },
                 {
                     "field": "payee",
-                    "value": "Plumbing Ink 123",
+                    "value": "Plumbing Inc",
                     "explanation": "Enter the payee’s name exactly as provided.",
                 },
                 {
