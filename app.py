@@ -341,19 +341,9 @@ def inject_global_styles() -> None:
     st.markdown(css, unsafe_allow_html=True)
 
 
-def _check_overlay_component(bg_url: str | None, positions: dict, values: dict, editable: bool, highlight: str | None = None) -> dict:
-    """Render the overlay component and return updated values when edited."""
-    # Declare component once at module level path
-    global CHECK_OVERLAY
-    try:
-        CHECK_OVERLAY
-    except NameError:
-        CHECK_OVERLAY = components.declare_component(
-            "check_overlay",
-            path=str(Path(__file__).parent / "components" / "check_overlay"),
-        )
-    result = CHECK_OVERLAY(bg_url=bg_url, positions=positions, values=values, editable=editable, highlight=highlight or "")
-    return result or values
+def _check_overlay_component(*args, **kwargs):
+    # Removed custom component usage for reliability
+    raise RuntimeError("custom component disabled")
 
 
 def render_header() -> None:
