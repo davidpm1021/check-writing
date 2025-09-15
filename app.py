@@ -172,13 +172,31 @@ def inject_global_styles() -> None:
 
       /* Check visual - realistic layout */
       .check-real {{
-        width: 760px;
+        position: relative;
+        width: 920px;
         max-width: 100%;
-        background: #fff;
+        aspect-ratio: 2.2 / 1;
+        background: radial-gradient(circle at 30% 40%, #f3fff8 0%, #e8f7f0 55%, #f7fffc 100%);
         border: 2px solid var(--color-light-gray-blue);
         border-radius: 12px;
         padding: 16px 20px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        overflow: hidden;
+      }}
+      .check-number {{
+        position: absolute; right: 20px; top: 16px;
+        font-weight: 700; color: var(--color-navy-blue);
+        letter-spacing: 2px;
+      }}
+      .date-wrap {{
+        position: absolute; right: 20px; top: 56px; width: 360px;
+      }}
+      .small-label {{
+        font-weight: 700; letter-spacing: 2px; color: var(--color-navy-blue);
+      }}
+      .date-line {{
+        border-bottom: 2px solid var(--color-light-gray-blue);
+        height: 28px; border-radius: 2px;
       }}
       .check-row {{
         display: grid;
@@ -228,6 +246,7 @@ def inject_global_styles() -> None:
         font-weight: 700;
         text-transform: uppercase;
         justify-self: end;
+        font-size: 22px;
       }}
       .micr {{
         margin-top: 12px;
@@ -486,41 +505,38 @@ def render_check_static() -> None:
         # Static visual of a check (realistic layout)
         check_html = """
         <div class="check-real" role="group" aria-label="Check fields (static)">
-          <div class="check-row">
+          <div class="check-number">0025</div>
+          <div class="date-wrap">
+            <div class="small-label">DATE</div>
+            <div class="date-line"></div>
+          </div>
+          <div class="check-row" style="margin-top: 96px;">
             <div>
-              <div class="check-label">Date</div>
+              <div class="check-label">PAY TO THE ORDER OF</div>
               <div class="line"></div>
             </div>
             <div>
-              <div class="check-label">$ Amount</div>
+              <div class="check-label">$</div>
               <div class="amount-box"></div>
             </div>
           </div>
           <div class="check-row words">
             <div>
-              <div class="check-label">Pay to the Order of</div>
               <div class="line"></div>
             </div>
-            <div class="dollars-label">Dollars</div>
+            <div class="dollars-label">DOLLARS</div>
           </div>
-          <div class="check-row words">
+          <div class="check-row bottom" style="margin-top: 28px;">
             <div>
-              <div class="check-label">Amount in Words</div>
-              <div class="line"></div>
-            </div>
-            <div></div>
-          </div>
-          <div class="check-row bottom">
-            <div>
-              <div class="check-label">Memo</div>
+              <div class="check-label">MEMO</div>
               <div class="line"></div>
             </div>
             <div>
-              <div class="check-label">Signature</div>
+              <div class="check-label" style="text-align:right">AUTHORIZED SIGNATURE</div>
               <div class="line"></div>
             </div>
           </div>
-          <div class="micr">||:123456789||: 1234567890 ||· 0123</div>
+          <div class="micr">||:789123456||: 123789456123" 0025</div>
         </div>
         """
         st.markdown(check_html, unsafe_allow_html=True)
@@ -599,41 +615,38 @@ def render_check_guided() -> None:
         # Check with filled fields (realistic layout)
         check_html = f"""
         <div class=\"check-real\" role=\"group\" aria-label=\"Check fields (guided)\"> 
-          <div class=\"check-row\"> 
+          <div class=\"check-number\">0025</div>
+          <div class=\"date-wrap\">
+            <div class=\"small-label\">DATE</div>
+            <div class=\"date-line\"></div>
+          </div>
+          <div class=\"check-row\" style=\"margin-top: 96px;\"> 
             <div>
-              <div class=\"check-label\">Date</div>
-              <div class=\"line\"><div class=\"fill\">{fields['date']}</div></div>
+              <div class=\"check-label\">PAY TO THE ORDER OF</div>
+              <div class=\"line\"><div class=\"fill\">{fields['payee']}</div></div>
             </div>
             <div>
-              <div class=\"check-label\">$ Amount</div>
+              <div class=\"check-label\">$</div>
               <div class=\"amount-box\">{fields['amount_numeric']}</div>
             </div>
           </div>
           <div class=\"check-row words\">
             <div>
-              <div class=\"check-label\">Pay to the Order of</div>
-              <div class=\"line\"><div class=\"fill\">{fields['payee']}</div></div>
-            </div>
-            <div class=\"dollars-label\">Dollars</div>
-          </div>
-          <div class=\"check-row words\">
-            <div>
-              <div class=\"check-label\">Amount in Words</div>
               <div class=\"line\"><div class=\"fill\">{fields['amount_words']}</div></div>
             </div>
-            <div></div>
+            <div class=\"dollars-label\">DOLLARS</div>
           </div>
-          <div class=\"check-row bottom\">
+          <div class=\"check-row bottom\" style=\"margin-top: 28px;\">
             <div>
-              <div class=\"check-label\">Memo</div>
+              <div class=\"check-label\">MEMO</div>
               <div class=\"line\"><div class=\"fill\">{fields['memo']}</div></div>
             </div>
             <div>
-              <div class=\"check-label\">Signature</div>
+              <div class=\"check-label\" style=\"text-align:right\">AUTHORIZED SIGNATURE</div>
               <div class=\"line\"><div class=\"fill\">{fields['signature']}</div></div>
             </div>
           </div>
-          <div class=\"micr\">||:123456789||: 1234567890 ||· 0123</div>
+          <div class=\"micr\">||:789123456||: 123789456123\" 0025</div>
         </div>
         """
         st.markdown(check_html, unsafe_allow_html=True)
