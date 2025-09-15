@@ -230,6 +230,14 @@ def _get_scenarios() -> list[dict[str, str]]:
             "title": "Utilities — $86.45",
             "prompt": "Write a check to City Utilities for $86.45.",
         },
+        {
+            "title": "Grocery Store — $64.32",
+            "prompt": "Write a check to FreshMart for $64.32.",
+        },
+        {
+            "title": "Donation — $50",
+            "prompt": "Write a check to Community Fund for $50.00.",
+        },
     ]
 
 
@@ -301,6 +309,26 @@ def _get_guided_scenarios() -> list[dict]:
             "signature": "John Doe",
             "steps": [],
         },
+        {
+            "title": "Grocery Store — $64.32",
+            "amount_numeric": "$64.32",
+            "amount_words": "Sixty-four dollars and 32/100",
+            "payee": "FreshMart",
+            "date": "10/12/2025",
+            "memo": "Groceries",
+            "signature": "John Doe",
+            "steps": [],
+        },
+        {
+            "title": "Donation — $50",
+            "amount_numeric": "$50.00",
+            "amount_words": "Fifty dollars and 00/100",
+            "payee": "Community Fund",
+            "date": "10/20/2025",
+            "memo": "Donation",
+            "signature": "John Doe",
+            "steps": [],
+        },
     ]
 
 
@@ -353,6 +381,16 @@ def render_controls() -> None:
             "we_amount_words",
             "we_memo",
             "we_signature",
+        ]:
+            st.session_state[k] = ""
+        # Clear You do inputs
+        for k in [
+            "you_date",
+            "you_payee",
+            "you_amount_numeric",
+            "you_amount_words",
+            "you_memo",
+            "you_signature",
         ]:
             st.session_state[k] = ""
 

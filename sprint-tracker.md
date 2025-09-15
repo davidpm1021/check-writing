@@ -218,9 +218,9 @@ Dates: Start ____ / End ____
 - Verify tab close/refresh clears all data; no external calls or storage.
 
 **Tasks**
-- [ ] Write and review 3–5 scenarios
-- [ ] Implement scenario switching with appropriate resets
-- [ ] Finalize Reset and Replay behaviors
+- [x] Write and review 3–5 scenarios
+- [x] Implement scenario switching with appropriate resets
+- [x] Finalize Reset and Replay behaviors
 - [ ] Confirm no data persists after tab close/refresh
 
 **Acceptance Criteria**
@@ -233,7 +233,7 @@ Dates: Start ____ / End ____
 **Artifacts**
 - Links: ____
 
-**Status**: Not Started
+**Status**: In Progress
 Owner: ____
 
 ---
