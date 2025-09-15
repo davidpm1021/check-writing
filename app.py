@@ -653,6 +653,93 @@ def render_check_we_do() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
 
+def render_check_you_do() -> None:
+    scenario_idx = st.session_state.selected_scenario
+    guided = _get_guided_scenarios()[scenario_idx]
+    expected = {
+        "date": guided.get("date", ""),
+        "payee": guided.get("payee", ""),
+        "amount_numeric": guided.get("amount_numeric", ""),
+        "amount_words": guided.get("amount_words", ""),
+        "memo": guided.get("memo", ""),
+        "signature": guided.get("signature", ""),
+    }
+
+    # Keep separate state keys for You do so We do inputs are preserved when switching tabs
+    for key in [
+        "you_date",
+        "you_payee",
+        "you_amount_numeric",
+        "you_amount_words",
+        "you_memo",
+        "you_signature",
+    ]:
+        st.session_state.setdefault(key, "")
+
+    with st.container():
+        st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
+        st.markdown("#### You do — Independent practice")
+
+        scenario = _get_scenarios()[scenario_idx]
+        st.info(scenario["prompt"])  # Minimal prompting per requirements
+
+        st.text_input("Date (MM/DD/YYYY)", key="you_date")
+        st.text_input("Pay to the Order of", key="you_payee")
+        st.text_input("$ Amount (numeric)", key="you_amount_numeric")
+        st.text_input("Amount in Words", key="you_amount_words")
+        st.text_input("Memo (optional)", key="you_memo")
+        st.text_input("Signature", key="you_signature")
+
+        cols = st.columns([1, 1, 6])
+        show_summary = False
+        with cols[0]:
+            if st.button("Check my work", type="primary"):
+                show_summary = True
+        with cols[1]:
+            if st.button("Clear", type="secondary"):
+                for k in [
+                    "you_date",
+                    "you_payee",
+                    "you_amount_numeric",
+                    "you_amount_words",
+                    "you_memo",
+                    "you_signature",
+                ]:
+                    st.session_state[k] = ""
+                st.rerun()
+
+        if show_summary:
+            checks = {
+                "Date": _validate_date(st.session_state.you_date),
+                "Payee": _validate_payee(st.session_state.you_payee, expected["payee"]),
+                "$ Amount": _validate_amount_numeric(st.session_state.you_amount_numeric, expected["amount_numeric"]),
+                "Amount in Words": _validate_amount_words(st.session_state.you_amount_words, expected["amount_words"]),
+            }
+            st.markdown("### Results")
+            all_ok = True
+            for label, (ok, msg) in checks.items():
+                if ok:
+                    st.markdown(f"- ✅ {label}: Correct")
+                else:
+                    st.markdown(f"- ❌ {label}: {msg}")
+                    all_ok = False
+            # Memo and signature lightweight checks
+            if st.session_state.you_signature.strip():
+                st.markdown("- ✅ Signature: Present")
+            else:
+                st.markdown("- ⚠️ Signature: Add your name")
+                all_ok = False
+            if st.session_state.you_memo.strip():
+                st.markdown("- ℹ️ Memo: Not required, but helpful")
+
+            if all_ok:
+                st.success("Great job! Everything looks correct.")
+            else:
+                st.info("Review the items marked above and try again.")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 def main() -> None:
     inject_global_styles()
     _ensure_session_state_defaults()
@@ -667,7 +754,7 @@ def main() -> None:
         elif st.session_state.mode == "We do":
             render_check_we_do()
         else:
-            render_check_static()
+            render_check_you_do()
 
 
 if __name__ == "__main__":

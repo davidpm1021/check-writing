@@ -178,10 +178,17 @@ Dates: Start ____ / End ____
 - Optional completion state with summary of corrections.
 
 **Tasks**
-- [ ] Implement independent mode with scenario prompt only
-- [ ] Reuse validators and unify error presentation
-- [ ] Add optional “Check my work” CTA
-- [ ] Add completion summary with corrections
+- [x] Implement independent mode with scenario prompt only
+- [x] Reuse validators and unify error presentation
+- [x] Add optional “Check my work” CTA
+**Acceptance Criteria**
+- [ ] All fields validated; minimal prompting
+- [ ] Reset clears `st.session_state`
+- [ ] Summary clearly communicates corrections
+Owner: ____
+
+**Status**: Complete
+Owner: ____
 
 **Acceptance Criteria**
 - [ ] All fields validated; minimal prompting
