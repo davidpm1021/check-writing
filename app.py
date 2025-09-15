@@ -968,10 +968,10 @@ def render_calibrate() -> None:
             with column:
                 st.markdown(f"**{name.replace('_',' ').title()}**")
                 p = positions[name]
-                p["top"] = st.slider(f"{name}-top %", 0, 100, p["top"], 1, key=f"{name}_top")
-                p["left"] = st.slider(f"{name}-left %", 0, 100, p["left"], 1, key=f"{name}_left")
-                p["width"] = st.slider(f"{name}-width %", 1, 100, p["width"], 1, key=f"{name}_width")
-                p["height"] = st.slider(f"{name}-height %", 1, 100, p["height"], 1, key=f"{name}_height")
+                p["top"] = round(st.slider(f"{name}-top %", 0.0, 100.0, float(p["top"]), 0.5, key=f"{name}_top"), 1)
+                p["left"] = round(st.slider(f"{name}-left %", 0.0, 100.0, float(p["left"]), 0.5, key=f"{name}_left"), 1)
+                p["width"] = round(st.slider(f"{name}-width %", 1.0, 100.0, float(p["width"]), 0.5, key=f"{name}_width"), 1)
+                p["height"] = round(st.slider(f"{name}-height %", 1.0, 100.0, float(p["height"]), 0.5, key=f"{name}_height"), 1)
 
         sliders_for("date", col_left)
         sliders_for("payee", col_left)
