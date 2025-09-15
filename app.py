@@ -960,23 +960,7 @@ def render_calibrate() -> None:
         st.markdown("### Calibrate overlays (dev-only)")
         st.caption("Adjust sliders to align boxes with your check image. Save when satisfied.")
 
-        # Preview area
-        html = ["<div class='check-real'>"]
-        for key, label in [
-            ("date", "DATE"),
-            ("payee", "PAYEE"),
-            ("amount_numeric", "$ NUMERIC"),
-            ("amount_words", "AMOUNT WORDS"),
-            ("memo", "MEMO"),
-            ("signature", "SIGNATURE"),
-        ]:
-            p = positions[key]
-            style = f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%;"
-            html.append(f"<div class='cal-box' style='{style}'>{label}</div>")
-        html.append("</div>")
-        st.markdown("\n".join(html), unsafe_allow_html=True)
-
-        st.divider()
+        # Controls first so updated values are used immediately when rendering preview below
         col_left, col_right = st.columns(2)
 
         def sliders_for(name: str, column):
@@ -994,6 +978,24 @@ def render_calibrate() -> None:
         sliders_for("amount_words", col_right)
         sliders_for("memo", col_right)
         sliders_for("signature", col_right)
+
+        st.divider()
+
+        # Live preview uses latest slider values
+        html = ["<div class='check-real'>"]
+        for key, label in [
+            ("date", "DATE"),
+            ("payee", "PAYEE"),
+            ("amount_numeric", "$ NUMERIC"),
+            ("amount_words", "AMOUNT WORDS"),
+            ("memo", "MEMO"),
+            ("signature", "SIGNATURE"),
+        ]:
+            p = positions[key]
+            style = f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%;"
+            html.append(f"<div class='cal-box' style='{style}'>{label}</div>")
+        html.append("</div>")
+        st.markdown("\n".join(html), unsafe_allow_html=True)
 
         save_col, cancel_col = st.columns(2)
         with save_col:
