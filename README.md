@@ -19,6 +19,14 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+### Embed and Deploy
+- See `EMBEDDING.md` for iframe snippet and baseUrlPath configuration.
+- Docker:
+```bash
+docker build -t check-writing .
+docker run -p 8501:8501 check-writing
+```
+
 ### Privacy
 - No analytics or external network calls.
 - All state remains in `st.session_state` and is cleared on refresh/close.

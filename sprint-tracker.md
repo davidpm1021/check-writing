@@ -284,8 +284,8 @@ Dates: Start ____ / End ____
 - Final privacy review: confirm no analytics, cookies, or network calls.
 
 **Tasks**
-- [ ] Produce build artifact suitable for embedding
-- [ ] Write embed guide (container size, theming, snippet)
+- [x] Produce build artifact suitable for embedding (Dockerfile)
+- [x] Write embed guide (container size, baseUrlPath, snippet)
 - [ ] Run performance checks for load and interaction
 - [ ] Conduct privacy review; verify no external calls
 
@@ -299,7 +299,7 @@ Dates: Start ____ / End ____
 **Artifacts**
 - Links: ____
 
-**Status**: Not Started
+**Status**: In Progress
 Owner: ____
 
 ---

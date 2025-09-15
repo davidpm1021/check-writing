@@ -8,4 +8,9 @@ font = "sans serif"                 # We'll inject exact fonts via CSS
 [browser]
 gatherUsageStats = false
 
+[server]
+headless = true
+# Set baseUrlPath when hosting under a subpath, e.g., "check-writing"
+# baseUrlPath = "check-writing"
+
 
