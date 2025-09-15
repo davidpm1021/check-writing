@@ -256,6 +256,18 @@ def inject_global_styles() -> None:
         font-size: 14px;
         text-align: center;
       }}
+      .hotspot {{
+        position: absolute;
+        display: block;
+        border: 2px dashed transparent;
+        border-radius: 6px;
+        cursor: pointer;
+      }}
+      .hotspot:focus-visible, .hotspot:hover {{
+        border-color: var(--color-bright-blue);
+        outline: none;
+        background: rgba(39,92,228,0.06);
+      }}
       .field-hint {{
         color: var(--color-navy-blue);
         font-size: 14px;
@@ -536,7 +548,7 @@ def render_check_static() -> None:
               <div class="line"></div>
             </div>
           </div>
-          <div class="micr">||:789123456||: 123789456123" 0025</div>
+          <div class="micr">||:789123456||: 123789456123&quot; 0025</div>
         </div>
         """
         st.markdown(check_html, unsafe_allow_html=True)
@@ -616,10 +628,20 @@ def render_check_guided() -> None:
         check_html = f"""
         <div class=\"check-real\" role=\"group\" aria-label=\"Check fields (guided)\"> 
           <div class=\"check-number\">0025</div>
+          <button class=\"hotspot\" style=\"right:20px; top:56px; width:360px; height:42px\" aria-label=\"Date field\"></button>
           <div class=\"date-wrap\">
             <div class=\"small-label\">DATE</div>
             <div class=\"date-line\"></div>
           </div>
+
+          <button class=\"hotspot\" style=\"left:20px; top:96px; width: calc(100% - 320px); height:58px\" aria-label=\"Pay to the Order of field\"></button>
+          <button class=\"hotspot\" style=\"right:20px; top:110px; width:220px; height:42px\" aria-label=\"Numeric amount field\"></button>
+
+          <button class=\"hotspot\" style=\"left:20px; top:166px; width: calc(100% - 240px); height:58px\" aria-label=\"Amount in words field\"></button>
+
+          <button class=\"hotspot\" style=\"left:20px; bottom:74px; width:45%; height:42px\" aria-label=\"Memo field\"></button>
+          <button class=\"hotspot\" style=\"right:20px; bottom:74px; width:45%; height:42px\" aria-label=\"Signature field\"></button>
+
           <div class=\"check-row\" style=\"margin-top: 96px;\"> 
             <div>
               <div class=\"check-label\">PAY TO THE ORDER OF</div>
