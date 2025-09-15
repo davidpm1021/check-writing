@@ -472,6 +472,11 @@ def _get_guided_scenarios() -> list[dict]:
     return [
         {
             "title": "Plumbing Ink 123 — $150",
+            "context": (
+                "Scenario: John Doe hired Plumbing Ink 123 to fix a leaking kitchen faucet. "
+                "The service was completed today and the invoice total is $150.00. John will "
+                "write a check to pay the plumber before the technician leaves."
+            ),
             "amount_numeric": "$150.00",
             "amount_words": "One hundred fifty dollars and 00/100",
             "payee": "Plumbing Ink 123",
@@ -716,6 +721,8 @@ def render_check_guided() -> None:
     with st.container():
         st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
         st.markdown("#### I do — Guided walkthrough")
+        if guided.get("context"):
+            st.info(guided["context"])
 
         # Progress info
         progress_ratio = 0.0 if current_clamped < 0 else (current_clamped + 1) / total_steps
