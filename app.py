@@ -306,6 +306,15 @@ def inject_global_styles() -> None:
         outline: none;
         background: rgba(39,92,228,0.06);
       }}
+      .cal-box {{
+        position: absolute;
+        border: 2px dashed var(--color-bright-blue);
+        border-radius: 6px;
+        background: rgba(39,92,228,0.08);
+        color: var(--color-navy-blue);
+        font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+      }}
       .field-hint {{
         color: var(--color-navy-blue);
         font-size: 14px;
@@ -492,6 +501,32 @@ def _ensure_flow_defaults() -> None:
     st.session_state.setdefault("selected_scenario", 0)
     st.session_state.setdefault("guided_step", -1)
     st.session_state.setdefault("mode", "I do")
+    # default overlay positions if no assets/overlay.json
+    st.session_state.setdefault("overlay_positions", {
+        "date": {"top": 13, "left": 62, "width": 32, "height": 7},
+        "payee": {"top": 30, "left": 8, "width": 70, "height": 8},
+        "amount_numeric": {"top": 30, "left": 80, "width": 12, "height": 7},
+        "amount_words": {"top": 45, "left": 7, "width": 82, "height": 8},
+        "memo": {"top": 72, "left": 7, "width": 42, "height": 7},
+        "signature": {"top": 72, "left": 55, "width": 36, "height": 7},
+    })
+
+
+def _load_overlay_positions() -> dict:
+    try:
+        p = Path("assets/overlay.json")
+        if p.exists():
+            data = json.loads(p.read_text(encoding="utf-8"))
+            return data
+    except Exception:
+        pass
+    return st.session_state.get("overlay_positions", {})
+
+
+def _save_overlay_positions(data: dict) -> None:
+    assets_dir = Path("assets")
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    Path("assets/overlay.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def render_top_nav() -> None:
@@ -513,6 +548,11 @@ def render_top_nav() -> None:
                     st.session_state.screen = "i_do"
                 elif st.session_state.screen == "you_do":
                     st.session_state.screen = "we_do"
+                st.rerun()
+        # Dev-only calibrate
+        if st.query_params.get("dev") == "1":
+            if st.button("Calibrate overlays"):
+                st.session_state.screen = "calibrate"
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -619,14 +659,7 @@ def render_check_guided() -> None:
         st.progress(progress_ratio, text=f"Step {max(0, current_clamped + 1)} of {total_steps}")
 
         # Percent-based hotspot positions to align with typical personal check layout
-        positions = {
-            "date": {"top": 13, "left": 62, "width": 32, "height": 7},
-            "payee": {"top": 30, "left": 8, "width": 70, "height": 8},
-            "amount_numeric": {"top": 30, "left": 80, "width": 12, "height": 7},
-            "amount_words": {"top": 45, "left": 7, "width": 82, "height": 8},
-            "memo": {"top": 72, "left": 7, "width": 42, "height": 7},
-            "signature": {"top": 72, "left": 55, "width": 36, "height": 7},
-        }
+        positions = _load_overlay_positions()
 
         def box_style(key: str, active: bool) -> str:
             p = positions[key]
@@ -916,6 +949,65 @@ def main() -> None:
             if st.button("Finish", type="primary"):
                 st.session_state.screen = "scenario"
                 st.rerun()
+    elif screen == "calibrate":
+        render_calibrate()
+
+
+def render_calibrate() -> None:
+    positions = _load_overlay_positions() or st.session_state["overlay_positions"]
+    with st.container():
+        st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
+        st.markdown("### Calibrate overlays (dev-only)")
+        st.caption("Adjust sliders to align boxes with your check image. Save when satisfied.")
+
+        # Preview area
+        html = ["<div class='check-real'>"]
+        for key, label in [
+            ("date", "DATE"),
+            ("payee", "PAYEE"),
+            ("amount_numeric", "$ NUMERIC"),
+            ("amount_words", "AMOUNT WORDS"),
+            ("memo", "MEMO"),
+            ("signature", "SIGNATURE"),
+        ]:
+            p = positions[key]
+            style = f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%;"
+            html.append(f"<div class='cal-box' style='{style}'>{label}</div>")
+        html.append("</div>")
+        st.markdown("\n".join(html), unsafe_allow_html=True)
+
+        st.divider()
+        col_left, col_right = st.columns(2)
+
+        def sliders_for(name: str, column):
+            with column:
+                st.markdown(f"**{name.replace('_',' ').title()}**")
+                p = positions[name]
+                p["top"] = st.slider(f"{name}-top %", 0, 100, p["top"], 1, key=f"{name}_top")
+                p["left"] = st.slider(f"{name}-left %", 0, 100, p["left"], 1, key=f"{name}_left")
+                p["width"] = st.slider(f"{name}-width %", 1, 100, p["width"], 1, key=f"{name}_width")
+                p["height"] = st.slider(f"{name}-height %", 1, 100, p["height"], 1, key=f"{name}_height")
+
+        sliders_for("date", col_left)
+        sliders_for("payee", col_left)
+        sliders_for("amount_numeric", col_left)
+        sliders_for("amount_words", col_right)
+        sliders_for("memo", col_right)
+        sliders_for("signature", col_right)
+
+        save_col, cancel_col = st.columns(2)
+        with save_col:
+            if st.button("Save positions", type="primary"):
+                _save_overlay_positions(positions)
+                st.success("Saved to assets/overlay.json")
+        with cancel_col:
+            if st.button("Back to I do"):
+                st.session_state.screen = "i_do"
+                st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
+    elif screen == "calibrate":
+        render_calibrate()
 
 
 if __name__ == "__main__":
