@@ -1,6 +1,6 @@
-"""NGPF Check Writing Interactive — Sprint 0 scaffold
+"""NGPF Check Writing Interactive — Sprint 1 UI
 
-Streamlit skeleton with global styles, header, and responsive container.
+Scaffold with global styles, header, responsive container, controls, and static Check UI.
 No external calls, no persistence beyond session.
 """
 
@@ -105,6 +105,50 @@ def inject_global_styles() -> None:
       .ngpf-container {{
         padding: var(--spacing-lg);
       }}
+
+      /* Controls panel */
+      .ngpf-controls {{
+        background: #fff;
+        border: 1px solid var(--color-light-gray-blue);
+        border-radius: 12px;
+        padding: var(--spacing-lg);
+      }}
+
+      /* Check visual */
+      .check {{
+        width: 100%;
+        background: #fff;
+        border: 2px solid var(--color-light-gray-blue);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      }}
+      .check-row {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }}
+      .check-label {{
+        font-weight: 600;
+        color: var(--color-navy-blue);
+        margin-bottom: 4px;
+      }}
+      .check-box {{
+        height: 40px;
+        border: 1px solid var(--color-light-gray-blue);
+        border-radius: 8px;
+        background: var(--color-soft-blue-tint);
+      }}
+      .check-box.wide {{ height: 56px; }}
+      .check-amount {{
+        display: grid;
+        grid-template-columns: 1fr 180px;
+        gap: 12px;
+      }}
+      @media (max-width: 480px) {{
+        .check-row, .check-amount {{ grid-template-columns: 1fr; }}
+      }}
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
@@ -123,19 +167,122 @@ def render_header() -> None:
     st.markdown(header_html, unsafe_allow_html=True)
 
 
-def render_home() -> None:
+def _ensure_session_state_defaults() -> None:
+    if "selected_scenario" not in st.session_state:
+        st.session_state.selected_scenario = 0
+    if "mode" not in st.session_state:
+        st.session_state.mode = "I do"
+
+
+def _get_scenarios() -> list[dict[str, str]]:
+    return [
+        {
+            "title": "Plumbing Ink 123 — $150",
+            "prompt": "Write a check to Plumbing Ink 123 for $150.00.",
+        },
+        {
+            "title": "Monthly Rent — $1,200",
+            "prompt": "Write a check to Oakwood Apartments for $1,200.00.",
+        },
+        {
+            "title": "Utilities — $86.45",
+            "prompt": "Write a check to City Utilities for $86.45.",
+        },
+    ]
+
+
+def render_controls() -> None:
     with st.container():
         st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
-        st.success(
-            "Sprint 0 scaffold loaded. Next: build Check UI and mode controls in Sprint 1."
+        st.markdown('<div class="ngpf-controls" role="region" aria-label="Controls">', unsafe_allow_html=True)
+        scenarios = _get_scenarios()
+        scenario_titles = [s["title"] for s in scenarios]
+        st.session_state.selected_scenario = st.selectbox(
+            "Scenario",
+            options=list(range(len(scenario_titles))),
+            format_func=lambda i: scenario_titles[i],
+            index=st.session_state.selected_scenario,
+            help="Pick a built-in example to practice.",
         )
+
+        tabs = st.tabs(["I do", "We do", "You do"])
+        with tabs[0]:
+            st.session_state.mode = "I do"
+            st.caption("Guided walkthrough — auto-fills with explanations.")
+        with tabs[1]:
+            st.session_state.mode = "We do"
+            st.caption("Semi-guided — prompts, hints, and inline corrections.")
+        with tabs[2]:
+            st.session_state.mode = "You do"
+            st.caption("Independent practice — minimal prompts with inline correction.")
+
+        if st.button("Reset", type="secondary", help="Clear and start over"):
+            for k in list(st.session_state.keys()):
+                del st.session_state[k]
+            st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_check_static() -> None:
+    scenario = _get_scenarios()[st.session_state.selected_scenario]
+    with st.container():
+        st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
+        st.markdown("#### Scenario", help="Use this prompt to fill out the check in later sprints.")
+        st.info(scenario["prompt"])
+
+        # Static visual of a check
+        check_html = """
+        <div class="check" role="group" aria-label="Check fields (static)">
+          <div class="check-row">
+            <div>
+              <div class="check-label">Date</div>
+              <div class="check-box"></div>
+            </div>
+            <div>
+              <div class="check-label">Pay to the Order of</div>
+              <div class="check-box"></div>
+            </div>
+          </div>
+
+          <div class="check-amount">
+            <div>
+              <div class="check-label">Amount in Words</div>
+              <div class="check-box wide"></div>
+            </div>
+            <div>
+              <div class="check-label">$ Amount</div>
+              <div class="check-box"></div>
+            </div>
+          </div>
+
+          <div class="check-row">
+            <div>
+              <div class="check-label">Memo</div>
+              <div class="check-box"></div>
+            </div>
+            <div>
+              <div class="check-label">Signature</div>
+              <div class="check-box"></div>
+            </div>
+          </div>
+        </div>
+        """
+        st.markdown(check_html, unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
 
 def main() -> None:
     inject_global_styles()
+    _ensure_session_state_defaults()
     render_header()
-    render_home()
+    # Layout: controls left, check right
+    left, right = st.columns([1, 2], gap="large")
+    with left:
+        render_controls()
+    with right:
+        render_check_static()
 
 
 if __name__ == "__main__":

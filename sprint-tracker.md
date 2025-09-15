@@ -94,7 +94,7 @@ Dates: Start ____ / End ____
 **Artifacts**
 - Links: ____
 
-**Status**: Not Started
+**Status**: In Progress
 Owner: ____
 
 ---
