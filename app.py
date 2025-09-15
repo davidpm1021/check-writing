@@ -7,6 +7,8 @@ No external calls, no persistence beyond session.
 from __future__ import annotations
 
 import streamlit as st
+import base64
+from pathlib import Path
 
 try:
     import tokens as design_tokens
@@ -36,8 +38,35 @@ st.set_page_config(
 )
 
 
+def _get_check_bg_data_url() -> str | None:
+    """Return data URL for a background image if an assets/check.* file exists."""
+    candidates = [
+        Path("assets/check.png"),
+        Path("assets/check.jpg"),
+        Path("assets/check.jpeg"),
+        Path("assets/check.svg"),
+    ]
+    for p in candidates:
+        if p.exists():
+            suffix = p.suffix.lower().strip(".")
+            try:
+                data = p.read_bytes()
+                b64 = base64.b64encode(data).decode("utf-8")
+                mime = "image/svg+xml" if suffix == "svg" else f"image/{suffix}"
+                return f"data:{mime};base64,{b64}"
+            except Exception:
+                return None
+    return None
+
+
 def inject_global_styles() -> None:
     """Inject CSS variables, fonts, focus styles, and basic layout tokens."""
+    bg_data_url = _get_check_bg_data_url()
+    bg_image_block = (
+        f"background-image: url('{bg_data_url}'); background-size: cover; background-position: center;"
+        if bg_data_url
+        else ""
+    )
     css = f"""
     <style>
       @import url('https://fonts.googleapis.com/css2?family=PT+Sans:wght@700&family=Montserrat:wght@400;500;700&display=swap');
@@ -177,6 +206,7 @@ def inject_global_styles() -> None:
         max-width: 100%;
         aspect-ratio: 2.2 / 1;
         background: radial-gradient(circle at 30% 40%, #f3fff8 0%, #e8f7f0 55%, #f7fffc 100%);
+        {bg_image_block}
         border: 2px solid var(--color-light-gray-blue);
         border-radius: 12px;
         padding: 16px 20px;
