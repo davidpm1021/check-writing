@@ -308,6 +308,36 @@ def inject_global_styles() -> None:
         outline: none;
         background: rgba(39,92,228,0.06);
       }}
+      .tip {{
+        position: absolute;
+        background: #fff;
+        border: 1px solid var(--color-light-gray-blue);
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: var(--color-navy-blue);
+        font-size: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        max-width: 60%;
+        z-index: 3;
+      }}
+      .tip::before {{
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: 20px;
+        border-width: 8px;
+        border-style: solid;
+        border-color: transparent transparent #fff transparent;
+      }}
+      .tip::after {{
+        content: '';
+        position: absolute;
+        top: -9px;
+        left: 20px;
+        border-width: 9px;
+        border-style: solid;
+        border-color: transparent transparent var(--color-light-gray-blue) transparent;
+      }}
       .cal-box {{
         position: absolute;
         border: 2px dashed var(--color-bright-blue);
@@ -681,6 +711,15 @@ def render_check_guided() -> None:
         parts.append(f"<div class='hotspot' style='{style_box('amount_words', current_clamped==3)}'><div class='fill'>{fields['amount_words']}</div></div>")
         parts.append(f"<div class='hotspot' style='{style_box('memo', current_clamped==4)}'><div class='fill'>{fields['memo']}</div></div>")
         parts.append(f"<div class='hotspot' style='{style_box('signature', current_clamped==5)}'><div class='fill'>{fields['signature']}</div></div>")
+        # Popover tip near the active field
+        if current_clamped >= 0:
+            active = steps[current_clamped]["field"]
+            p = positions[active]
+            tip_left = p['left']
+            tip_top = max(0, p['top'] - 12)
+            parts.append(
+                f"<div class='tip' style='left:{tip_left}%; top:{tip_top}%;'>{steps[current_clamped]['explanation']}</div>"
+            )
         parts.append("</div>")
         st.markdown("\n".join(parts), unsafe_allow_html=True)
 
