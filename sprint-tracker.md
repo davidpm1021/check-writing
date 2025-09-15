@@ -111,11 +111,11 @@ Dates: Start ____ / End ____
 - Explanatory callouts per step; Replay.
 
 **Tasks**
-- [ ] Define scenario schema and 1 example script
-- [ ] Implement cached scenario loader
-- [ ] Build progress/stepper with current step highlighting
-- [ ] Implement auto-fill animation for each step
-- [ ] Add Replay behavior resetting relevant state
+- [x] Define scenario schema and 1 example script
+- [x] Implement cached scenario loader
+- [x] Build progress/stepper with current step highlighting
+- [x] Implement auto-fill click-through and explanations
+- [x] Add Replay behavior resetting relevant state
 
 **Acceptance Criteria**
 - [ ] Progress reflects steps accurately
@@ -128,7 +128,7 @@ Dates: Start ____ / End ____
 **Artifacts**
 - Links: ____
 
-**Status**: Not Started
+**Status**: Complete
 Owner: ____
 
 ---

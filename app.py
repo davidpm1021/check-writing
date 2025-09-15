@@ -139,8 +139,18 @@ def inject_global_styles() -> None:
         border: 1px solid var(--color-light-gray-blue);
         border-radius: 8px;
         background: var(--color-soft-blue-tint);
+        position: relative;
       }}
       .check-box.wide {{ height: 56px; }}
+      .check-fill {{
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        color: var(--color-navy-blue);
+        font-weight: 600;
+      }}
       .check-amount {{
         display: grid;
         grid-template-columns: 1fr 180px;
@@ -172,6 +182,12 @@ def _ensure_session_state_defaults() -> None:
         st.session_state.selected_scenario = 0
     if "mode" not in st.session_state:
         st.session_state.mode = "I do"
+    if "guided_step" not in st.session_state:
+        st.session_state.guided_step = -1  # -1 = before first step
+    if "_last_scenario" not in st.session_state:
+        st.session_state._last_scenario = st.session_state.selected_scenario
+    if "_last_mode" not in st.session_state:
+        st.session_state._last_mode = st.session_state.mode
 
 
 def _get_scenarios() -> list[dict[str, str]]:
@@ -187,6 +203,77 @@ def _get_scenarios() -> list[dict[str, str]]:
         {
             "title": "Utilities — $86.45",
             "prompt": "Write a check to City Utilities for $86.45.",
+        },
+    ]
+
+
+@st.cache_data(show_spinner=False)
+def _get_guided_scenarios() -> list[dict]:
+    """Guided step scripts for "I do" mode.
+
+    Each scenario defines ordered steps that auto-fill the check and include explanations.
+    """
+    return [
+        {
+            "title": "Plumbing Ink 123 — $150",
+            "amount_numeric": "$150.00",
+            "amount_words": "One hundred fifty dollars and 00/100",
+            "payee": "Plumbing Ink 123",
+            "date": "10/15/2025",
+            "memo": "Service call",
+            "signature": "John Doe",
+            "steps": [
+                {
+                    "field": "date",
+                    "value": "10/15/2025",
+                    "explanation": "Write today’s date clearly in MM/DD/YYYY format.",
+                },
+                {
+                    "field": "payee",
+                    "value": "Plumbing Ink 123",
+                    "explanation": "Enter the payee’s name exactly as provided.",
+                },
+                {
+                    "field": "amount_numeric",
+                    "value": "$150.00",
+                    "explanation": "Write the numeric amount including cents (use .00 if no cents).",
+                },
+                {
+                    "field": "amount_words",
+                    "value": "One hundred fifty dollars and 00/100",
+                    "explanation": "Write the amount in words and include the cents as a fraction.",
+                },
+                {
+                    "field": "memo",
+                    "value": "Service call",
+                    "explanation": "Memo is optional but helpful for your records.",
+                },
+                {
+                    "field": "signature",
+                    "value": "John Doe",
+                    "explanation": "Sign your name as it appears on your bank account.",
+                },
+            ],
+        },
+        {
+            "title": "Monthly Rent — $1,200",
+            "amount_numeric": "$1,200.00",
+            "amount_words": "One thousand two hundred dollars and 00/100",
+            "payee": "Oakwood Apartments",
+            "date": "10/01/2025",
+            "memo": "October rent",
+            "signature": "John Doe",
+            "steps": [],  # Fallback to auto from fields if needed later
+        },
+        {
+            "title": "Utilities — $86.45",
+            "amount_numeric": "$86.45",
+            "amount_words": "Eighty-six dollars and 45/100",
+            "payee": "City Utilities",
+            "date": "10/10/2025",
+            "memo": "Account 12345",
+            "signature": "John Doe",
+            "steps": [],
         },
     ]
 
@@ -223,6 +310,15 @@ def render_controls() -> None:
 
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
+
+    # Detect scenario or mode changes to reset guided state
+    if (
+        st.session_state.selected_scenario != st.session_state._last_scenario
+        or st.session_state.mode != st.session_state._last_mode
+    ):
+        st.session_state.guided_step = -1
+        st.session_state._last_scenario = st.session_state.selected_scenario
+        st.session_state._last_mode = st.session_state.mode
 
 
 def render_check_static() -> None:
@@ -273,6 +369,131 @@ def render_check_static() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
 
+def _compute_filled_fields(scenario_idx: int, step_index: int) -> dict[str, str]:
+    guided = _get_guided_scenarios()[scenario_idx]
+    fields: dict[str, str] = {
+        "date": "",
+        "payee": "",
+        "amount_words": "",
+        "amount_numeric": "",
+        "memo": "",
+        "signature": "",
+    }
+    steps = guided.get("steps") or []
+    if not steps:
+        # If steps are not explicitly defined, fill in default order up to index
+        default_order = [
+            ("date", guided.get("date", "")),
+            ("payee", guided.get("payee", "")),
+            ("amount_numeric", guided.get("amount_numeric", "")),
+            ("amount_words", guided.get("amount_words", "")),
+            ("memo", guided.get("memo", "")),
+            ("signature", guided.get("signature", "")),
+        ]
+        for i, (f, v) in enumerate(default_order):
+            if i <= step_index:
+                fields[f] = v
+        return fields
+
+    for i, step in enumerate(steps):
+        if i <= step_index:
+            fields[step["field"]] = step["value"]
+    return fields
+
+
+def render_check_guided() -> None:
+    scenario_idx = st.session_state.selected_scenario
+    guided = _get_guided_scenarios()[scenario_idx]
+    steps = guided.get("steps") or [
+        {"field": "date", "value": guided.get("date", ""), "explanation": "Date"},
+        {"field": "payee", "value": guided.get("payee", ""), "explanation": "Payee"},
+        {
+            "field": "amount_numeric",
+            "value": guided.get("amount_numeric", ""),
+            "explanation": "Numeric amount",
+        },
+        {
+            "field": "amount_words",
+            "value": guided.get("amount_words", ""),
+            "explanation": "Amount in words",
+        },
+        {"field": "memo", "value": guided.get("memo", ""), "explanation": "Memo"},
+        {
+            "field": "signature",
+            "value": guided.get("signature", ""),
+            "explanation": "Signature",
+        },
+    ]
+
+    total_steps = len(steps)
+    current = st.session_state.guided_step
+    current_clamped = max(-1, min(current, total_steps - 1))
+    fields = _compute_filled_fields(scenario_idx, current_clamped)
+
+    with st.container():
+        st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
+        st.markdown("#### I do — Guided walkthrough")
+
+        # Progress info
+        progress_ratio = 0.0 if current_clamped < 0 else (current_clamped + 1) / total_steps
+        st.progress(progress_ratio, text=f"Step {max(0, current_clamped + 1)} of {total_steps}")
+
+        # Check with filled fields
+        check_html = f"""
+        <div class=\"check\" role=\"group\" aria-label=\"Check fields (guided)\"> 
+          <div class=\"check-row\"> 
+            <div>
+              <div class=\"check-label\">Date</div>
+              <div class=\"check-box\"><div class=\"check-fill\">{fields['date']}</div></div>
+            </div>
+            <div>
+              <div class=\"check-label\">Pay to the Order of</div>
+              <div class=\"check-box\"><div class=\"check-fill\">{fields['payee']}</div></div>
+            </div>
+          </div>
+          <div class=\"check-amount\">
+            <div>
+              <div class=\"check-label\">Amount in Words</div>
+              <div class=\"check-box wide\"><div class=\"check-fill\">{fields['amount_words']}</div></div>
+            </div>
+            <div>
+              <div class=\"check-label\">$ Amount</div>
+              <div class=\"check-box\"><div class=\"check-fill\">{fields['amount_numeric']}</div></div>
+            </div>
+          </div>
+          <div class=\"check-row\">
+            <div>
+              <div class=\"check-label\">Memo</div>
+              <div class=\"check-box\"><div class=\"check-fill\">{fields['memo']}</div></div>
+            </div>
+            <div>
+              <div class=\"check-label\">Signature</div>
+              <div class=\"check-box\"><div class=\"check-fill\">{fields['signature']}</div></div>
+            </div>
+          </div>
+        </div>
+        """
+        st.markdown(check_html, unsafe_allow_html=True)
+
+        # Explanation for current step
+        if current_clamped >= 0:
+            st.info(steps[current_clamped]["explanation"])
+        else:
+            st.caption("Click Next to begin the guided walkthrough.")
+
+        cols = st.columns([1, 1, 4])
+        with cols[0]:
+            if st.button("Next", type="primary", disabled=current_clamped >= total_steps - 1):
+                st.session_state.guided_step = min(current_clamped + 1, total_steps - 1)
+                st.rerun()
+        with cols[1]:
+            if st.button("Replay", type="secondary"):
+                st.session_state.guided_step = -1
+                st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 def main() -> None:
     inject_global_styles()
     _ensure_session_state_defaults()
@@ -282,7 +503,10 @@ def main() -> None:
     with left:
         render_controls()
     with right:
-        render_check_static()
+        if st.session_state.mode == "I do":
+            render_check_guided()
+        else:
+            render_check_static()
 
 
 if __name__ == "__main__":
