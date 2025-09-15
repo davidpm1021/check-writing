@@ -113,6 +113,11 @@ def inject_global_styles() -> None:
         border-radius: 12px;
         padding: var(--spacing-lg);
       }}
+      .stButton > button {{
+        font-weight: 700;
+        border-radius: 6px;
+        padding: 8px 16px;
+      }}
 
       /* Check visual */
       .check {{
@@ -635,7 +640,7 @@ def render_check_we_do() -> None:
         ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
         if st.session_state.we_date:
             st.markdown(
-                f"<div class='{'field-ok' if ok else 'field-error'}'>{'Looks good' if ok else msg}</div>",
+                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Looks good' if ok else msg}</div>",
                 unsafe_allow_html=True,
             )
         else:
@@ -646,7 +651,7 @@ def render_check_we_do() -> None:
         if st.session_state.we_payee:
             ok, msg = _validate_payee(st.session_state.we_payee, expected["payee"])
             st.markdown(
-                f"<div class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
+                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
                 unsafe_allow_html=True,
             )
         else:
@@ -657,7 +662,7 @@ def render_check_we_do() -> None:
         if st.session_state.we_amount_numeric:
             ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"])
             st.markdown(
-                f"<div class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
+                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
                 unsafe_allow_html=True,
             )
         else:
@@ -668,7 +673,7 @@ def render_check_we_do() -> None:
         if st.session_state.we_amount_words:
             ok, msg = _validate_amount_words(st.session_state.we_amount_words, expected["amount_words"])
             st.markdown(
-                f"<div class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
+                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
                 unsafe_allow_html=True,
             )
         else:

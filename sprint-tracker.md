@@ -250,6 +250,8 @@ Dates: Start ____ / End ____
 - Cross-device/browser matrix smoke tests.
 
 **Tasks**
+- [x] Add aria-live status on validation feedback
+- [x] Style buttons per style guide (bold, radius, padding)
 - [ ] Perform accessibility audit and log issues
 - [ ] Fix identified a11y issues (roles, labels, focus order)
 - [ ] Polish visuals to match tokens and spacing
