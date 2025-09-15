@@ -313,11 +313,12 @@ def inject_global_styles() -> None:
         background: #fff8c4;
         border: 1px solid var(--color-light-gray-blue);
         border-radius: 8px;
-        padding: 8px 12px;
+        padding: 6px 12px;
         color: var(--color-navy-blue);
-        font-size: 16px;
+        font-size: 15px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        max-width: 60%;
+        max-width: 80%;
+        min-width: 40%;
         z-index: 3;
       }}
       /* Arrow for tip appearing below the field (pointing up) */
@@ -745,7 +746,8 @@ def render_check_guided() -> None:
             else:
                 tip_top = p['top'] + p['height'] + 2
                 cls = 'tip below'
-            tip_left = min(95, p['left'] + 2)
+            # Prefer placing a bit to the right; clamp within bounds
+            tip_left = min(95, max(0, p['left'] + 4))
             parts.append(
                 f"<div class='{cls}' style='left:{tip_left}%; top:{tip_top}%;'>{steps[current_clamped]['explanation']}</div>"
             )
