@@ -43,8 +43,8 @@ Dates: Start ____ / End ____
 - Implement global layout (header with logo placeholder, content container).
 
 **Tasks**
-- [ ] Create `app.py` skeleton and run basic Streamlit app
-- [ ] Extract color and typography tokens from `style-guide.md`
+- [x] Create `app.py` skeleton and run basic Streamlit app
+- [x] Extract color and typography tokens from `style-guide.md`
 - [ ] Load PT Sans (H1) and Montserrat (UI/body) font stacks
 - [ ] Build header (logo placeholder left) and base page container
 - [ ] Verify projector-friendly contrast and visible focus states
@@ -60,7 +60,7 @@ Dates: Start ____ / End ____
 **Artifacts**
 - Links to PRs, screenshots: ____
 
-**Status**: Not Started
+**Status**: In Progress
 Owner: ____
 
 ---

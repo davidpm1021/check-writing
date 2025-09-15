@@ -1,0 +1,11 @@
+[theme]
+primaryColor = "#275ce4"            # Bright Blue
+backgroundColor = "#ffffff"         # White background for app
+secondaryBackgroundColor = "#edfaff" # Soft Blue Tint
+textColor = "#0b1541"               # Navy Blue
+font = "sans serif"                 # We'll inject exact fonts via CSS
+
+[browser]
+gatherUsageStats = false
+
+
