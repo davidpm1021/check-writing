@@ -310,7 +310,7 @@ def inject_global_styles() -> None:
       }}
       .tip {{
         position: absolute;
-        background: #fff;
+        background: #fff8c4;
         border: 1px solid var(--color-light-gray-blue);
         border-radius: 8px;
         padding: 8px 12px;
@@ -320,16 +320,17 @@ def inject_global_styles() -> None:
         max-width: 60%;
         z-index: 3;
       }}
-      .tip::before {{
+      /* Arrow for tip appearing below the field (pointing up) */
+      .tip.below::before {{
         content: '';
         position: absolute;
         top: -8px;
         left: 20px;
         border-width: 8px;
         border-style: solid;
-        border-color: transparent transparent #fff transparent;
+        border-color: transparent transparent #fff8c4 transparent;
       }}
-      .tip::after {{
+      .tip.below::after {{
         content: '';
         position: absolute;
         top: -9px;
@@ -337,6 +338,25 @@ def inject_global_styles() -> None:
         border-width: 9px;
         border-style: solid;
         border-color: transparent transparent var(--color-light-gray-blue) transparent;
+      }}
+      /* Arrow for tip appearing above the field (pointing down) */
+      .tip.above::before {{
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 20px;
+        border-width: 8px;
+        border-style: solid;
+        border-color: #fff8c4 transparent transparent transparent;
+      }}
+      .tip.above::after {{
+        content: '';
+        position: absolute;
+        bottom: -9px;
+        left: 20px;
+        border-width: 9px;
+        border-style: solid;
+        border-color: var(--color-light-gray-blue) transparent transparent transparent;
       }}
       .cal-box {{
         position: absolute;
@@ -715,10 +735,17 @@ def render_check_guided() -> None:
         if current_clamped >= 0:
             active = steps[current_clamped]["field"]
             p = positions[active]
-            tip_left = p['left']
-            tip_top = max(0, p['top'] - 12)
+            # Prefer placing tip above the field; if too close to top, place below
+            place_above = p['top'] > 12
+            if place_above:
+                tip_top = p['top'] - 12
+                cls = 'tip above'
+            else:
+                tip_top = p['top'] + p['height'] + 2
+                cls = 'tip below'
+            tip_left = min(95, p['left'] + 2)
             parts.append(
-                f"<div class='tip' style='left:{tip_left}%; top:{tip_top}%;'>{steps[current_clamped]['explanation']}</div>"
+                f"<div class='{cls}' style='left:{tip_left}%; top:{tip_top}%;'>{steps[current_clamped]['explanation']}</div>"
             )
         parts.append("</div>")
         st.markdown("\n".join(parts), unsafe_allow_html=True)
