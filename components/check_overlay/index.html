@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://unpkg.com/streamlit-component-lib@1.5.0/dist/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/streamlit-component-lib@1.5.0/dist/index.js"></script>
     <style>
       :root {
         --blue: #275ce4;
@@ -75,12 +74,16 @@
 
       function boot(){
         const S = window.Streamlit;
-        if (!S){ setTimeout(boot, 50); return; }
-        S.events.addEventListener(S.RENDER_EVENT, onRender);
-        S.setComponentReady();
-        if (firstRender){ S.setFrameHeight(document.body.scrollHeight); firstRender=false; }
+        if (!S){ setTimeout(boot, 30); return; }
+        try {
+          S.events.addEventListener(S.RENDER_EVENT, onRender);
+          S.setComponentReady();
+          if (firstRender){ S.setFrameHeight(document.body.scrollHeight); firstRender=false; }
+        } catch(e){ setTimeout(boot, 30); }
       }
-      window.addEventListener('load', boot);
+      boot();
+      document.addEventListener('DOMContentLoaded', boot, { once: true });
+      window.addEventListener('load', boot, { once: true });
     </script>
   </body>
   </html>

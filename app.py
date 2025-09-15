@@ -785,7 +785,21 @@ def render_check_we_do() -> None:
             "memo": st.session_state.we_memo,
             "signature": st.session_state.we_signature,
         }
-        updated = _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=True)
+        try:
+            updated = _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=True)
+        except Exception:
+            # Fallback to native overlay inputs if component fails
+            html = ["<div class='check-real'>"]
+            def ip(name):
+                p = positions[name]
+                style = f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%;"
+                val = values.get(name, "")
+                return f"<textarea style='position:absolute; {style}; resize:none; border:2px dashed var(--color-bright-blue); border-radius:6px; background:rgba(255,255,255,0.02); padding:6px 10px;' name='{name}'>{val}</textarea>"
+            for k in ["date","payee","amount_numeric","amount_words","memo","signature"]:
+                html.append(ip(k))
+            html.append("</div>")
+            st.markdown("\n".join(html), unsafe_allow_html=True)
+            updated = values
         st.session_state.we_date = updated.get("date", "")
         ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
         if st.session_state.we_date:
@@ -885,7 +899,20 @@ def render_check_you_do() -> None:
             "memo": st.session_state.you_memo,
             "signature": st.session_state.you_signature,
         }
-        updated = _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=True)
+        try:
+            updated = _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=True)
+        except Exception:
+            html = ["<div class='check-real'>"]
+            def ip(name):
+                p = positions[name]
+                style = f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%;"
+                val = values.get(name, "")
+                return f"<textarea style='position:absolute; {style}; resize:none; border:2px dashed var(--color-bright-blue); border-radius:6px; background:rgba(255,255,255,0.02); padding:6px 10px;' name='{name}'>{val}</textarea>"
+            for k in ["date","payee","amount_numeric","amount_words","memo","signature"]:
+                html.append(ip(k))
+            html.append("</div>")
+            st.markdown("\n".join(html), unsafe_allow_html=True)
+            updated = values
         st.session_state.you_date = updated.get("date", "")
         st.session_state.you_payee = updated.get("payee", "")
         st.session_state.you_amount_numeric = updated.get("amount_numeric", "")
