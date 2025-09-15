@@ -69,6 +69,31 @@ def _get_check_bg_data_url() -> str | None:
     return None
 
 
+def _get_logo_data_url() -> str | None:
+    """Return data URL for a header logo if assets/logo.* exists (case-insensitive)."""
+    assets_dir = Path("assets")
+    if not assets_dir.exists():
+        return None
+    exts = {"png", "jpg", "jpeg", "svg", "webp"}
+    candidates = []
+    for p in assets_dir.iterdir():
+        if p.is_file():
+            name = p.name.lower()
+            ext = p.suffix.lower().strip(".")
+            if ext in exts and (name == f"logo.{ext}" or name.startswith("logo.")):
+                candidates.append(p)
+    candidates.sort(key=lambda x: x.name.lower())
+    for p in candidates:
+        try:
+            data = p.read_bytes()
+            b64 = base64.b64encode(data).decode("utf-8")
+            mime = "image/svg+xml" if p.suffix.lower() == ".svg" else f"image/{p.suffix.lower().strip('.')}"
+            return f"data:{mime};base64,{b64}"
+        except Exception:
+            continue
+    return None
+
+
 def inject_global_styles() -> None:
     """Inject CSS variables, fonts, focus styles, and basic layout tokens."""
     bg_data_url = _get_check_bg_data_url()
@@ -158,17 +183,20 @@ def inject_global_styles() -> None:
       .ngpf-header {{
         display: flex;
         align-items: center;
-        gap: var(--spacing-md);
-        padding: var(--spacing-md);
-        background: var(--color-soft-blue-tint);
+        gap: 16px;
+        padding: 24px 32px;
+        background: #ffffff;
         border-bottom: 1px solid var(--color-light-gray-blue);
       }}
       .ngpf-logo {{
-        width: 48px;
-        height: 48px;
-        border-radius: 6px;
-        background: white;
-        border: 2px solid var(--color-light-gray-blue);
+        width: 96px;
+        height: 96px;
+        border-radius: 8px;
+        background: #ffffff;
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        border: 1px solid var(--color-light-gray-blue);
       }}
       .ngpf-header-title {{
         display: flex;
@@ -181,7 +209,12 @@ def inject_global_styles() -> None:
 
       /* Main content container */
       .ngpf-container {{
-        padding: var(--spacing-lg);
+        padding: 24px;
+        max-width: 980px;
+        margin: 16px auto;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
       }}
 
       /* Controls panel */
@@ -403,12 +436,18 @@ def _check_overlay_component(*args, **kwargs):
 
 
 def render_header() -> None:
-    header_html = """
-    <div class="ngpf-header" role="banner">
-      <div class="ngpf-logo" aria-hidden="true"></div>
-      <div class="ngpf-header-title">
+    logo_url = _get_logo_data_url()
+    logo_style = (
+        f"background-image:url('{logo_url}'); background-size: contain; background-position:center; background-repeat:no-repeat;"
+        if logo_url
+        else ""
+    )
+    header_html = f"""
+    <div class=\"ngpf-header\" role=\"banner\">
+      <div class=\"ngpf-logo\" aria-hidden=\"true\" style=\"{logo_style}\"></div>
+      <div class=\"ngpf-header-title\">
         <h1>Check Writing Interactive</h1>
-        <div class="ngpf-subtitle">NGPF — I do · We do · You do</div>
+        
       </div>
     </div>
     """
