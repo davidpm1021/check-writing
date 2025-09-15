@@ -678,16 +678,21 @@ def render_check_guided() -> None:
         # Percent-based hotspot positions to align with typical personal check layout
         positions = _load_overlay_positions()
 
-        bg = _get_check_bg_data_url()
-        values = {
-            "date": fields["date"],
-            "payee": fields["payee"],
-            "amount_numeric": fields["amount_numeric"],
-            "amount_words": fields["amount_words"],
-            "memo": fields["memo"],
-            "signature": fields["signature"],
-        }
-        _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=False, highlight=steps[current_clamped]["field"] if current_clamped>=0 else None)
+        # Use native HTML overlay in I do to avoid component load timing in some environments
+        def style_box(key: str, active: bool) -> str:
+            p = positions[key]
+            hi = "outline:2px solid var(--color-bright-blue); outline-offset:2px;" if active else ""
+            return f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%; {hi}"
+
+        parts = ["<div class='check-real'>"]
+        parts.append(f"<div class='hotspot' style='{style_box('date', current_clamped==0)}'><div class='fill'>{fields['date']}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('payee', current_clamped==1)}'><div class='fill'>{fields['payee']}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('amount_numeric', current_clamped==2)}'><div class='fill' style='right:10px; left:auto;'>{fields['amount_numeric']}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('amount_words', current_clamped==3)}'><div class='fill'>{fields['amount_words']}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('memo', current_clamped==4)}'><div class='fill'>{fields['memo']}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('signature', current_clamped==5)}'><div class='fill'>{fields['signature']}</div></div>")
+        parts.append("</div>")
+        st.markdown("\n".join(parts), unsafe_allow_html=True)
 
         # Explanation for current step
         if current_clamped >= 0:
