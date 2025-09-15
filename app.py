@@ -735,10 +735,12 @@ def render_check_guided() -> None:
         if current_clamped >= 0:
             active = steps[current_clamped]["field"]
             p = positions[active]
-            # Prefer placing tip above the field; if too close to top, place below
-            place_above = p['top'] > 12
+            # Force above for dollar amount and signature to avoid covering content
+            force_above = active in {"amount_numeric", "signature"}
+            place_above = force_above or (p['top'] > 12)
             if place_above:
-                tip_top = p['top'] - 12
+                # Offset by the field's height plus extra margin
+                tip_top = max(0, p['top'] - (p['height'] + 6))
                 cls = 'tip above'
             else:
                 tip_top = p['top'] + p['height'] + 2
