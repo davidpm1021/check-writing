@@ -254,7 +254,7 @@ def inject_global_styles() -> None:
         border-radius: 12px;
         padding: 16px 20px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        overflow: hidden;
+        overflow: visible;
       }}
       .check-number {{
         position: absolute; right: 20px; top: 16px;
@@ -512,20 +512,20 @@ def _get_guided_scenarios() -> list[dict]:
         {
             "title": "Plumbing Inc — $150",
             "context": (
-                "Scenario: John Doe hired Plumbing Inc to fix a leaking kitchen faucet. "
-                "The service was completed today and the invoice total is $150.00. John will "
-                "write a check to pay the plumber before the technician leaves."
+                "Scenario (Feb 12, 2025): Avery Thompson hired Plumbing Inc to fix a leaking kitchen faucet. "
+                "The service was completed today and the invoice total is $150.00. Avery will write a check "
+                "to pay the plumber before the technician leaves."
             ),
             "amount_numeric": "$150.00",
             "amount_words": "One hundred fifty dollars and 00/100",
             "payee": "Plumbing Inc",
-            "date": "10/15/2025",
+            "date": "02/12/2025",
             "memo": "Service call",
-            "signature": "John Doe",
+            "signature": "Avery Thompson",
             "steps": [
                 {
                     "field": "date",
-                    "value": "10/15/2025",
+                    "value": "02/12/2025",
                     "explanation": "Write today’s date clearly in MM/DD/YYYY format.",
                 },
                 {
@@ -550,7 +550,7 @@ def _get_guided_scenarios() -> list[dict]:
                 },
                 {
                     "field": "signature",
-                    "value": "John Doe",
+                    "value": "Avery Thompson",
                     "explanation": "Sign your name as it appears on your bank account.",
                 },
             ],
