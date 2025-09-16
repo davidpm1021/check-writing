@@ -485,7 +485,7 @@ def _get_scenarios() -> list[dict[str, str]]:
         },
         {
             "title": "Monthly Rent — $1,200",
-            "prompt": "Write a check to Oakwood Apartments for $1,200.00 due on the first of the month.",
+            "prompt": "On November 1, 2025, write a check to Oakwood Apartments for $1,200.00 for November rent. Sign as Jordan Patel.",
         },
         {
             "title": "Field Trip Donation — $86.45",
@@ -558,21 +558,22 @@ def _get_guided_scenarios() -> list[dict]:
         {
             "title": "Monthly Rent — $1,200",
             "context": (
-                "Scenario: Rent is due on the 1st. John pays Oakwood Apartments $1,200.00 for November rent."
+                "Scenario (Nov 1, 2025): Jordan Patel is paying November rent to Oakwood Apartments. "
+                "The amount due is $1,200.00. Jordan will write and sign a check today."
             ),
             "amount_numeric": "$1,200.00",
             "amount_words": "One thousand two hundred dollars and 00/100",
             "payee": "Oakwood Apartments",
             "date": "11/01/2025",
             "memo": "November rent",
-            "signature": "John Doe",
+            "signature": "Jordan Patel",
             "steps": [
                 {"field": "date", "value": "11/01/2025", "explanation": "Rent is due on the 1st of the month."},
                 {"field": "payee", "value": "Oakwood Apartments", "explanation": "Enter the apartment name exactly."},
                 {"field": "amount_numeric", "value": "$1,200.00", "explanation": "Write the full amount with .00 cents."},
                 {"field": "amount_words", "value": "One thousand two hundred dollars and 00/100", "explanation": "Write the amount in words with the cents fraction."},
                 {"field": "memo", "value": "November rent", "explanation": "Memo helps you remember the purpose."},
-                {"field": "signature", "value": "John Doe", "explanation": "Sign your name to authorize payment."},
+                {"field": "signature", "value": "Jordan Patel", "explanation": "Sign your full name to authorize payment."},
             ],
         },
         {
@@ -620,6 +621,7 @@ def _ensure_flow_defaults() -> None:
     st.session_state.setdefault("screen", "i_do")  # i_do -> we_do -> you_do
     st.session_state.setdefault("selected_scenario", 0)
     st.session_state.setdefault("guided_step", -1)
+    st.session_state.setdefault("we_step", 0)
     st.session_state.setdefault("mode", "I do")
     # default overlay positions if no assets/overlay.json
     st.session_state.setdefault("overlay_positions", {
@@ -920,91 +922,85 @@ def render_check_we_do() -> None:
     with st.container():
         st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
         st.markdown("#### We do — Semi-guided practice")
-        st.info(_get_scenarios()[st.session_state.selected_scenario]["prompt"])  # show situation context
-        st.caption("Type into each field. Corrections will appear below as you go. Memo and signature are flexible.")
+        # Scenario context
+        guided_we = _get_guided_scenarios()[1]
+        we_context = guided_we.get("context", "Scenario: Pay monthly rent to Oakwood Apartments.")
+        st.info(we_context)
+        st.caption("We’ll fill one field at a time together. Memo/signature are flexible.")
 
-        bg = _get_check_bg_data_url()
+        # Left: live check with overlays and highlight
         positions = _load_overlay_positions()
-        values = {
-            "date": st.session_state.we_date,
-            "payee": st.session_state.we_payee,
-            "amount_numeric": st.session_state.we_amount_numeric,
-            "amount_words": st.session_state.we_amount_words,
-            "memo": st.session_state.we_memo,
-            "signature": st.session_state.we_signature,
+        bg_url = _get_check_bg_data_url()
+        parts = [
+            f"<div class='check-real' style=\"background-image:url('{bg_url or ''}'); background-size:cover; background-position:center;\">"
+        ]
+        def style_box(key: str, active: bool) -> str:
+            p = positions[key]
+            hi = "outline:2px solid var(--color-bright-blue); outline-offset:2px;" if active else ""
+            return f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%; {hi}"
+
+        we_fields = ["date","payee","amount_numeric","amount_words","memo","signature"]
+        idx = max(0, min(st.session_state.we_step, len(we_fields)-1))
+        active_field = we_fields[idx]
+
+        # Mirror current values
+        amt_val = st.session_state.we_amount_numeric
+        parts.append(f"<div class='hotspot' style='{style_box('date', active_field=='date')}'><div class='fill'>{st.session_state.we_date}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('payee', active_field=='payee')}'><div class='fill'>{st.session_state.we_payee}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('amount_numeric', active_field=='amount_numeric')}'><div class='fill' style='right:10px; left:auto;'>{amt_val}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('amount_words', active_field=='amount_words')}'><div class='fill'>{st.session_state.we_amount_words}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('memo', active_field=='memo')}'><div class='fill'>{st.session_state.we_memo}</div></div>")
+        parts.append(f"<div class='hotspot' style='{style_box('signature', active_field=='signature')}'><div class='fill signature-text'>{st.session_state.we_signature}</div></div>")
+        parts.append("</div>")
+        st.markdown("\n".join(parts), unsafe_allow_html=True)
+
+        # Right: single active input with validation and step nav
+        st.markdown("### Step " + str(idx+1) + "/" + str(len(we_fields)))
+        instruction_map = {
+            "date": "Enter the date in MM/DD/YYYY (e.g., 11/01/2025).",
+            "payee": "Type the payee exactly: Oakwood Apartments.",
+            "amount_numeric": "Enter the numeric amount 1200.00",
+            "amount_words": "Write the amount in words with the cents fraction.",
+            "memo": "Add a memo (optional).",
+            "signature": "Sign your name (flexible).",
         }
-        try:
-            updated = _check_overlay_component(bg_url=bg, positions=positions, values=values, editable=True)
-        except Exception:
-            # Fallback to native overlay inputs if component fails
-            html = ["<div class='check-real'>"]
-            def ip(name):
-                p = positions[name]
-                style = f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%;"
-                val = values.get(name, "")
-                return f"<textarea style='position:absolute; {style}; resize:none; border:2px dashed var(--color-bright-blue); border-radius:6px; background:rgba(255,255,255,0.02); padding:6px 10px;' name='{name}'>{val}</textarea>"
-            for k in ["date","payee","amount_numeric","amount_words","memo","signature"]:
-                html.append(ip(k))
-            html.append("</div>")
-            st.markdown("\n".join(html), unsafe_allow_html=True)
-            updated = values
-        st.session_state.we_date = updated.get("date", "")
-        ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
-        if st.session_state.we_date:
+        st.caption(instruction_map[active_field])
+
+        if active_field == "date":
+            st.session_state.we_date = st.text_input("Date (MM/DD/YYYY)", value=st.session_state.we_date, placeholder="11/01/2025")
+            ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
+        elif active_field == "payee":
+            st.session_state.we_payee = st.text_input("Pay to the Order of", value=st.session_state.we_payee, placeholder=expected["payee"])
+            ok, msg = _validate_payee(st.session_state.we_payee, expected["payee"]) if st.session_state.we_payee else (False, None)
+        elif active_field == "amount_numeric":
+            st.session_state.we_amount_numeric = st.text_input("$ Amount (numeric)", value=st.session_state.we_amount_numeric, placeholder=expected["amount_numeric"]).lstrip('$').strip()
+            ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"]) if st.session_state.we_amount_numeric else (False, None)
+        elif active_field == "amount_words":
+            st.session_state.we_amount_words = st.text_input("Amount in Words", value=st.session_state.we_amount_words, placeholder=expected["amount_words"]) 
+            ok, msg = _validate_amount_words(st.session_state.we_amount_words, expected["amount_words"]) if st.session_state.we_amount_words else (False, None)
+        elif active_field == "memo":
+            st.session_state.we_memo = st.text_input("Memo (optional)", value=st.session_state.we_memo)
+            ok, msg = True, None
+        else:  # signature
+            st.session_state.we_signature = st.text_input("Signature", value=st.session_state.we_signature)
+            ok, msg = (len(st.session_state.we_signature.strip()) > 0), (None if len(st.session_state.we_signature.strip())>0 else "Add your signature")
+
+        if msg:
             st.markdown(
                 f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Looks good' if ok else msg}</div>",
                 unsafe_allow_html=True,
             )
-        else:
-            st.markdown("<div class='field-hint'>Enter today’s date.</div>", unsafe_allow_html=True)
 
-        # Payee
-        st.session_state.we_payee = updated.get("payee", "")
-        if st.session_state.we_payee:
-            ok, msg = _validate_payee(st.session_state.we_payee, expected["payee"])
-            st.markdown(
-                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown("<div class='field-hint'>Type the payee name exactly.</div>", unsafe_allow_html=True)
-
-        # Amount numeric
-        # strip leading $
-        st.session_state.we_amount_numeric = updated.get("amount_numeric", "").lstrip('$').strip() 
-        if st.session_state.we_amount_numeric:
-            ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"])
-            st.markdown(
-                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown("<div class='field-hint'>Include dollars and cents (e.g., 150.00).</div>", unsafe_allow_html=True)
-
-        # Amount in words
-        st.session_state.we_amount_words = updated.get("amount_words", "") 
-        if st.session_state.we_amount_words:
-            ok, msg = _validate_amount_words(st.session_state.we_amount_words, expected["amount_words"])
-            st.markdown(
-                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Correct' if ok else msg}</div>",
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown("<div class='field-hint'>Use words and cents as a fraction (xx/100).</div>", unsafe_allow_html=True)
-
-        # Memo (optional) — accept any value
-        st.session_state.we_memo = updated.get("memo", "")
-        if st.session_state.we_memo:
-            st.markdown("<div class='field-ok'>Memo added</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div class='field-hint'>Memo is optional but helpful.</div>", unsafe_allow_html=True)
-
-        # Signature — accept any non-empty
-        st.session_state.we_signature = updated.get("signature", "")
-        if st.session_state.we_signature:
-            st.markdown("<div class='field-ok'>Signature present</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div class='field-hint'>Sign your name as on your bank account.</div>", unsafe_allow_html=True)
+        nav_l, nav_r = st.columns([1,1])
+        with nav_l:
+            if st.button("Back step", disabled=idx == 0):
+                st.session_state.we_step = max(0, idx-1)
+                st.rerun()
+        with nav_r:
+            disable_next = (not ok) if active_field in {"payee","amount_numeric"} else False
+            if st.button("Next step", disabled=idx == len(we_fields)-1 or disable_next):
+                st.session_state.we_step = min(len(we_fields)-1, idx+1)
+                st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
 
