@@ -922,40 +922,36 @@ def render_check_we_do() -> None:
     with st.container():
         st.markdown('<div class="ngpf-container">', unsafe_allow_html=True)
         st.markdown("#### We do — Semi-guided practice")
-        # Scenario context
-        guided_we = _get_guided_scenarios()[1]
-        we_context = guided_we.get("context", "Scenario: Pay monthly rent to Oakwood Apartments.")
+        we_context = guided.get("context", "Scenario (Nov 1, 2025): Jordan Patel pays Oakwood Apartments $1,200.00.")
         st.info(we_context)
-        st.caption("We’ll fill one field at a time together. Memo/signature are flexible.")
+        st.caption("We’ll fill one field at a time. Memo/signature are flexible. Click Next to proceed.")
 
-        # Left: live check with overlays and highlight
         positions = _load_overlay_positions()
         bg_url = _get_check_bg_data_url()
-        parts = [
-            f"<div class='check-real' style=\"background-image:url('{bg_url or ''}'); background-size:cover; background-position:center;\">"
-        ]
+        we_fields = ["date","payee","amount_numeric","amount_words","memo","signature"]
+        # Allow clicking hotspots via query param to select field
+        qp = st.query_params
+        if qp.get("we_field") in we_fields:
+            st.session_state.we_step = we_fields.index(qp.get("we_field"))
+        idx = max(0, min(st.session_state.we_step, len(we_fields)-1))
+        active_field = we_fields[idx]
+
+        # Draw check overlays
         def style_box(key: str, active: bool) -> str:
             p = positions[key]
             hi = "outline:2px solid var(--color-bright-blue); outline-offset:2px;" if active else ""
             return f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%; {hi}"
-
-        we_fields = ["date","payee","amount_numeric","amount_words","memo","signature"]
-        idx = max(0, min(st.session_state.we_step, len(we_fields)-1))
-        active_field = we_fields[idx]
-
-        # Mirror current values
-        amt_val = st.session_state.we_amount_numeric
-        parts.append(f"<div class='hotspot' style='{style_box('date', active_field=='date')}'><div class='fill'>{st.session_state.we_date}</div></div>")
-        parts.append(f"<div class='hotspot' style='{style_box('payee', active_field=='payee')}'><div class='fill'>{st.session_state.we_payee}</div></div>")
-        parts.append(f"<div class='hotspot' style='{style_box('amount_numeric', active_field=='amount_numeric')}'><div class='fill' style='right:10px; left:auto;'>{amt_val}</div></div>")
-        parts.append(f"<div class='hotspot' style='{style_box('amount_words', active_field=='amount_words')}'><div class='fill'>{st.session_state.we_amount_words}</div></div>")
-        parts.append(f"<div class='hotspot' style='{style_box('memo', active_field=='memo')}'><div class='fill'>{st.session_state.we_memo}</div></div>")
-        parts.append(f"<div class='hotspot' style='{style_box('signature', active_field=='signature')}'><div class='fill signature-text'>{st.session_state.we_signature}</div></div>")
-        parts.append("</div>")
-        st.markdown("\n".join(parts), unsafe_allow_html=True)
-
-        # Right: single active input with validation and step nav
-        st.markdown("### Step " + str(idx+1) + "/" + str(len(we_fields)))
+        parts = [f"<div class='check-real' style=\"background-image:url('{bg_url or ''}'); background-size:cover; background-position:center;\">"]
+        parts.append(f"<a href='?we_field=date' class='hotspot' style='{style_box('date', active_field=='date')}'><div class='fill'>{st.session_state.we_date}</div></a>")
+        parts.append(f"<a href='?we_field=payee' class='hotspot' style='{style_box('payee', active_field=='payee')}'><div class='fill'>{st.session_state.we_payee}</div></a>")
+        parts.append(f"<a href='?we_field=amount_numeric' class='hotspot' style='{style_box('amount_numeric', active_field=='amount_numeric')}'><div class='fill' style='right:10px; left:auto;'>{st.session_state.we_amount_numeric}</div></a>")
+        parts.append(f"<a href='?we_field=amount_words' class='hotspot' style='{style_box('amount_words', active_field=='amount_words')}'><div class='fill'>{st.session_state.we_amount_words}</div></a>")
+        parts.append(f"<a href='?we_field=memo' class='hotspot' style='{style_box('memo', active_field=='memo')}'><div class='fill'>{st.session_state.we_memo}</div></a>")
+        parts.append(f"<a href='?we_field=signature' class='hotspot' style='{style_box('signature', active_field=='signature')}'><div class='fill signature-text'>{st.session_state.we_signature}</div></a>")
+        # Tip near active field
+        p = positions[active_field]
+        tip_top = max(0, p['top'] - (p['height'] + 6))
+        tip_left = min(95, max(0, p['left'] + 4))
         instruction_map = {
             "date": "Enter the date in MM/DD/YYYY (e.g., 11/01/2025).",
             "payee": "Type the payee exactly: Oakwood Apartments.",
@@ -964,8 +960,12 @@ def render_check_we_do() -> None:
             "memo": "Add a memo (optional).",
             "signature": "Sign your name (flexible).",
         }
-        st.caption(instruction_map[active_field])
+        parts.append(f"<div class='tip above' style='left:{tip_left}%; top:{tip_top}%;'>Step {idx+1} of {len(we_fields)} — {instruction_map[active_field]}</div>")
+        parts.append("</div>")
+        st.markdown("\n".join(parts), unsafe_allow_html=True)
 
+        # Active input below (mirrors on-check value)
+        ok, msg = False, None
         if active_field == "date":
             st.session_state.we_date = st.text_input("Date (MM/DD/YYYY)", value=st.session_state.we_date, placeholder="11/01/2025")
             ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
@@ -981,11 +981,12 @@ def render_check_we_do() -> None:
         elif active_field == "memo":
             st.session_state.we_memo = st.text_input("Memo (optional)", value=st.session_state.we_memo)
             ok, msg = True, None
-        else:  # signature
+        else:
             st.session_state.we_signature = st.text_input("Signature", value=st.session_state.we_signature)
-            ok, msg = (len(st.session_state.we_signature.strip()) > 0), (None if len(st.session_state.we_signature.strip())>0 else "Add your signature")
+            ok = len(st.session_state.we_signature.strip()) > 0
+            msg = None if ok else "Add your signature"
 
-        if msg:
+        if msg is not None:
             st.markdown(
                 f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Looks good' if ok else msg}</div>",
                 unsafe_allow_html=True,
