@@ -473,8 +473,21 @@ def _ensure_session_state_defaults() -> None:
         ("we_amount_words", ""),
         ("we_memo", ""),
         ("we_signature", ""),
+        ("we_validation_error", ""),
+        ("we_step", 0),
     ]:
         st.session_state.setdefault(key, default)
+    
+    # Clear validation error when starting fresh (step 0 with no input)
+    if st.session_state.get("we_step", 0) == 0 and not any([
+        st.session_state.get("we_date", ""),
+        st.session_state.get("we_payee", ""),
+        st.session_state.get("we_amount_numeric", ""),
+        st.session_state.get("we_amount_words", ""),
+        st.session_state.get("we_memo", ""),
+        st.session_state.get("we_signature", "")
+    ]):
+        st.session_state.we_validation_error = ""
 
 
 def _get_scenarios() -> list[dict[str, str]]:
@@ -621,7 +634,6 @@ def _ensure_flow_defaults() -> None:
     st.session_state.setdefault("screen", "i_do")  # i_do -> we_do -> you_do
     st.session_state.setdefault("selected_scenario", 0)
     st.session_state.setdefault("guided_step", -1)
-    st.session_state.setdefault("we_step", 0)
     st.session_state.setdefault("mode", "I do")
     # default overlay positions if no assets/overlay.json
     st.session_state.setdefault("overlay_positions", {
@@ -907,6 +919,13 @@ def _validate_amount_words(value: str, expected: str) -> tuple[bool, str | None]
     return False, f"Example: {expected} (format flexible)"
 
 
+def _save_current_field_from_form(field_name: str, step_idx: int) -> None:
+    """Helper to save the current field value from form data"""
+    # This will be called when Next is clicked to auto-save current field
+    # For now, we'll use JavaScript to get the value
+    pass  # The actual saving happens in the form submission handler
+
+
 def render_check_we_do() -> None:
     scenario_idx = 1  # We do uses second scenario (guided with prompts)
     guided = _get_guided_scenarios()[scenario_idx]
@@ -924,84 +943,231 @@ def render_check_we_do() -> None:
         st.markdown("#### We do — Semi-guided practice")
         we_context = guided.get("context", "Scenario (Nov 1, 2025): Jordan Patel pays Oakwood Apartments $1,200.00.")
         st.info(we_context)
-        st.caption("We’ll fill one field at a time. Memo/signature are flexible. Click Next to proceed.")
 
         positions = _load_overlay_positions()
         bg_url = _get_check_bg_data_url()
         we_fields = ["date","payee","amount_numeric","amount_words","memo","signature"]
-        # Allow clicking hotspots via query param to select field
-        qp = st.query_params
-        if qp.get("we_field") in we_fields:
-            st.session_state.we_step = we_fields.index(qp.get("we_field"))
         idx = max(0, min(st.session_state.we_step, len(we_fields)-1))
         active_field = we_fields[idx]
 
-        # Draw check overlays
-        def style_box(key: str, active: bool) -> str:
-            p = positions[key]
-            hi = "outline:2px solid var(--color-bright-blue); outline-offset:2px;" if active else ""
-            return f"left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%; {hi}"
-        parts = [f"<div class='check-real' style=\"background-image:url('{bg_url or ''}'); background-size:cover; background-position:center;\">"]
-        parts.append(f"<a href='?we_field=date' class='hotspot' style='{style_box('date', active_field=='date')}'><div class='fill'>{st.session_state.we_date}</div></a>")
-        parts.append(f"<a href='?we_field=payee' class='hotspot' style='{style_box('payee', active_field=='payee')}'><div class='fill'>{st.session_state.we_payee}</div></a>")
-        parts.append(f"<a href='?we_field=amount_numeric' class='hotspot' style='{style_box('amount_numeric', active_field=='amount_numeric')}'><div class='fill' style='right:10px; left:auto;'>{st.session_state.we_amount_numeric}</div></a>")
-        parts.append(f"<a href='?we_field=amount_words' class='hotspot' style='{style_box('amount_words', active_field=='amount_words')}'><div class='fill'>{st.session_state.we_amount_words}</div></a>")
-        parts.append(f"<a href='?we_field=memo' class='hotspot' style='{style_box('memo', active_field=='memo')}'><div class='fill'>{st.session_state.we_memo}</div></a>")
-        parts.append(f"<a href='?we_field=signature' class='hotspot' style='{style_box('signature', active_field=='signature')}'><div class='fill signature-text'>{st.session_state.we_signature}</div></a>")
-        # Tip near active field
-        p = positions[active_field]
-        tip_top = max(0, p['top'] - (p['height'] + 6))
-        tip_left = min(95, max(0, p['left'] + 4))
+        # Show instructional guidance
         instruction_map = {
-            "date": "Enter the date in MM/DD/YYYY (e.g., 11/01/2025).",
-            "payee": "Type the payee exactly: Oakwood Apartments.",
-            "amount_numeric": "Enter the numeric amount 1200.00",
-            "amount_words": "Write the amount in words with the cents fraction.",
-            "memo": "Add a memo (optional).",
-            "signature": "Sign your name (flexible).",
+            "date": "Enter the date in MM/DD/YYYY format (e.g., 11/01/2025)",
+            "payee": "Type the payee exactly: Oakwood Apartments",
+            "amount_numeric": "Enter the numeric amount: 1200.00",
+            "amount_words": "Write the amount in words with the cents fraction",
+            "memo": "Add a memo (optional field)",
+            "signature": "Sign your name (flexible)",
         }
-        parts.append(f"<div class='tip above' style='left:{tip_left}%; top:{tip_top}%;'>Step {idx+1} of {len(we_fields)} — {instruction_map[active_field]}</div>")
-        parts.append("</div>")
-        st.markdown("\n".join(parts), unsafe_allow_html=True)
+        st.markdown(f"**Step {idx+1} of {len(we_fields)}:** {instruction_map[active_field]}")
 
-        # Active input below (mirrors on-check value)
+        # Get current values
+        current_values = {
+            "date": st.session_state.we_date,
+            "payee": st.session_state.we_payee,
+            "amount_numeric": st.session_state.we_amount_numeric,
+            "amount_words": st.session_state.we_amount_words,
+            "memo": st.session_state.we_memo,
+            "signature": st.session_state.we_signature,
+        }
+
+        # Create check with functional input overlays using HTML form
+        form_id = f"we_check_form_{idx}"
+        html_parts = [f"<form id='{form_id}' method='GET' style='position:relative;'>"]
+        html_parts.append(f"<div class='check-real' style=\"background-image:url('{bg_url or ''}'); background-size:cover; background-position:center;\">")
+        
+        # Add input overlays for ALL fields (all clickable)
+        for field in we_fields:
+            p = positions[field]
+            val = current_values.get(field, "")
+            is_active = (field == active_field)
+            
+            # All fields get functional inputs positioned exactly over the check
+            # Active field has blue border, others have subtle border
+            border_color = "var(--color-bright-blue)" if is_active else "rgba(0,0,0,0.2)"
+            input_style = f"position:absolute; left:{p['left']}%; top:{p['top']}%; width:{p['width']}%; height:{p['height']}%; border:2px solid {border_color}; border-radius:6px; background:rgba(255,255,255,0.95); padding:6px 10px; font-weight:600; color:var(--color-navy-blue); font-size:16px; outline:none; z-index:10; box-sizing:border-box;"
+            
+            if field == "signature":
+                input_style += "font-family:'Dancing Script', cursive;"
+            if field == "amount_numeric":
+                input_style += "text-align:right;"
+            
+            # Generic placeholders, not the expected answers
+            placeholder_map = {
+                "date": "MM/DD/YYYY",
+                "payee": "Name or company",
+                "amount_numeric": "0.00",
+                "amount_words": "Amount in words",
+                "memo": "(optional)",
+                "signature": "Your signature"
+            }
+            placeholder_text = placeholder_map.get(field, "")
+            
+            # Use textarea for all fields since it's the only one that works
+            # Add autofocus to the active field
+            autofocus = "autofocus" if is_active else ""
+            
+            if field == "amount_words":
+                # Multi-line textarea for amount words
+                html_parts.append(f"<textarea name='we_{field}' style='{input_style} resize:none; font-family:inherit;' placeholder='{placeholder_text}' autocomplete='off' {autofocus}>{val}</textarea>")
+            else:
+                # Single-line textarea for other fields (works better than input)
+                single_line_style = input_style + " overflow:hidden; white-space:nowrap;"
+                html_parts.append(f"<textarea name='we_{field}' style='{single_line_style} resize:none; font-family:inherit;' placeholder='{placeholder_text}' autocomplete='off' rows='1' {autofocus}>{val}</textarea>")
+
+        # Add yellow guidance tooltip (like I Do section) - simplified without navigation buttons
+        if idx < len(we_fields):
+            p = positions[active_field]
+            # Force above for dollar amount and signature to avoid covering content
+            force_above = active_field in {"amount_numeric", "signature"}
+            place_above = force_above or (p['top'] > 12)
+            if place_above:
+                # Offset by the field's height plus extra margin
+                tip_top = max(0, p['top'] - (p['height'] + 8))
+                cls = 'tip above'
+            else:
+                tip_top = p['top'] + p['height'] + 2
+                cls = 'tip below'
+            # Prefer placing a bit to the right; clamp within bounds
+            tip_left = min(85, max(0, p['left'] + 4))
+            
+            # Create guidance content for yellow tooltip
+            guidance_text = instruction_map[active_field]
+            
+            # Check for validation error (only show if user tried to advance)
+            validation_error = st.session_state.get("we_validation_error", "")
+            
+            # Create navigation buttons HTML for inside the yellow box
+            back_disabled = idx == 0
+            is_last_step = idx >= len(we_fields) - 1
+            
+            # Simple link-based navigation buttons (avoid React conflicts)
+            buttons_html = "<div style='margin-top:12px; display:flex; gap:8px; justify-content:space-between;'>"
+            
+            if not back_disabled:
+                buttons_html += f"<a href='?we_nav=back&screen=we_do' style='padding:6px 12px; border:1px solid #ccc; border-radius:4px; background:#f5f5f5; color:#666; text-decoration:none; display:inline-block;'>Back</a>"
+            else:
+                buttons_html += "<span style='padding:6px 12px; border:1px solid #ccc; border-radius:4px; background:#f5f5f5; color:#666; opacity:0.5; display:inline-block;'>Back</span>"
+            
+            if is_last_step:
+                buttons_html += f"<a href='?we_nav=done&screen=we_do' style='padding:6px 12px; border:1px solid var(--color-bright-blue); border-radius:4px; background:var(--color-bright-blue); color:white; text-decoration:none; display:inline-block;'>Done</a>"
+            else:
+                buttons_html += f"<a href='?we_nav=next&screen=we_do' style='padding:6px 12px; border:1px solid var(--color-bright-blue); border-radius:4px; background:var(--color-bright-blue); color:white; text-decoration:none; display:inline-block;'>Next</a>"
+            
+            buttons_html += "</div>"
+            
+            # Add validation error display if present
+            error_html = ""
+            if validation_error:
+                error_html = f"<div style='margin-top:8px; padding:8px; background:#ffebee; border:1px solid #f44336; border-radius:4px; color:#d32f2f; font-size:14px;'><strong>⚠️ {validation_error}</strong></div>"
+            
+            html_parts.append(
+                f"<div class='{cls}' style='left:{tip_left}%; top:{tip_top}%; min-width:300px; z-index:1000;'>"
+                f"<strong>Step {idx+1} of {len(we_fields)}</strong><br>"
+                f"{guidance_text}<br>"
+                f"{error_html}"
+                f"{buttons_html}"
+                f"</div>"
+            )
+
+        # Add hidden submit button for form
+        html_parts.append("<input type='submit' style='display:none;' />")
+        html_parts.append("</div>")
+        html_parts.append("</form>")
+        st.markdown("\n".join(html_parts), unsafe_allow_html=True)
+
+        # Navigation and input processing is now handled in main() before this function runs
+        
+        # Add manual input method using Streamlit components for the active field
+        st.markdown("---")
+        st.markdown(f"**💡 Input Helper for Step {idx+1}:**")
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            current_val = current_values.get(active_field, "")
+            if active_field == "amount_words":
+                new_val = st.text_area(f"Enter {active_field.replace('_', ' ')}", value=current_val, key=f"helper_{active_field}", height=60)
+            else:
+                new_val = st.text_input(f"Enter {active_field.replace('_', ' ')}", value=current_val, key=f"helper_{active_field}")
+        
+        with col2:
+            if st.button("💾 Save", key=f"save_{active_field}"):
+                # Update session state with the new value
+                if active_field == "date":
+                    st.session_state.we_date = new_val
+                elif active_field == "payee":
+                    st.session_state.we_payee = new_val
+                elif active_field == "amount_numeric":
+                    st.session_state.we_amount_numeric = new_val.lstrip('$').strip()
+                elif active_field == "amount_words":
+                    st.session_state.we_amount_words = new_val
+                elif active_field == "memo":
+                    st.session_state.we_memo = new_val
+                elif active_field == "signature":
+                    st.session_state.we_signature = new_val
+                st.rerun()
+
+        # Validation for current field
         ok, msg = False, None
+        current_value = current_values[active_field]
+        
         if active_field == "date":
-            st.session_state.we_date = st.text_input("Date (MM/DD/YYYY)", value=st.session_state.we_date, placeholder="11/01/2025")
-            ok, msg = _validate_date(st.session_state.we_date) if st.session_state.we_date else (False, None)
+            ok, msg = _validate_date(current_value) if current_value else (False, None)
         elif active_field == "payee":
-            st.session_state.we_payee = st.text_input("Pay to the Order of", value=st.session_state.we_payee, placeholder=expected["payee"])
-            ok, msg = _validate_payee(st.session_state.we_payee, expected["payee"]) if st.session_state.we_payee else (False, None)
+            ok, msg = _validate_payee(current_value, expected["payee"]) if current_value else (False, None)
         elif active_field == "amount_numeric":
-            st.session_state.we_amount_numeric = st.text_input("$ Amount (numeric)", value=st.session_state.we_amount_numeric, placeholder=expected["amount_numeric"]).lstrip('$').strip()
-            ok, msg = _validate_amount_numeric(st.session_state.we_amount_numeric, expected["amount_numeric"]) if st.session_state.we_amount_numeric else (False, None)
+            ok, msg = _validate_amount_numeric(current_value, expected["amount_numeric"]) if current_value else (False, None)
         elif active_field == "amount_words":
-            st.session_state.we_amount_words = st.text_input("Amount in Words", value=st.session_state.we_amount_words, placeholder=expected["amount_words"]) 
-            ok, msg = _validate_amount_words(st.session_state.we_amount_words, expected["amount_words"]) if st.session_state.we_amount_words else (False, None)
+            ok, msg = _validate_amount_words(current_value, expected["amount_words"]) if current_value else (False, None)
         elif active_field == "memo":
-            st.session_state.we_memo = st.text_input("Memo (optional)", value=st.session_state.we_memo)
-            ok, msg = True, None
-        else:
-            st.session_state.we_signature = st.text_input("Signature", value=st.session_state.we_signature)
-            ok = len(st.session_state.we_signature.strip()) > 0
+            ok, msg = True, None  # Memo is always valid
+        elif active_field == "signature":
+            ok = len(current_value.strip()) > 0
             msg = None if ok else "Add your signature"
 
-        if msg is not None:
+        # Show validation feedback if needed
+        if current_value and msg is not None:
             st.markdown(
-                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'Looks good' if ok else msg}</div>",
+                f"<div role='status' aria-live='polite' class='{'field-ok' if ok else 'field-error'}'>{'✅ Looks good' if ok else f'❌ {msg}'}</div>",
                 unsafe_allow_html=True,
             )
 
-        nav_l, nav_r = st.columns([1,1])
-        with nav_l:
-            if st.button("Back step", disabled=idx == 0):
-                st.session_state.we_step = max(0, idx-1)
-                st.rerun()
-        with nav_r:
-            disable_next = (not ok) if active_field in {"payee","amount_numeric"} else False
-            if st.button("Next step", disabled=idx == len(we_fields)-1 or disable_next):
-                st.session_state.we_step = min(len(we_fields)-1, idx+1)
-                st.rerun()
+        # Show completion validation if Done was clicked or all steps are done
+        if st.session_state.get("we_completed", False) or (idx >= len(we_fields) - 1 and all(current_values.values())):
+            st.markdown("### 🎉 Check Complete!")
+            st.success("Great job! You've filled out all the fields. Let's validate your check:")
+            
+            # Run validation on all fields
+            all_valid = True
+            validations = {}
+            
+            # Validate each field
+            validations["Date"] = _validate_date(current_values["date"])
+            validations["Payee"] = _validate_payee(current_values["payee"], expected["payee"])
+            validations["Amount Numeric"] = _validate_amount_numeric(current_values["amount_numeric"], expected["amount_numeric"])
+            validations["Amount Words"] = _validate_amount_words(current_values["amount_words"], expected["amount_words"])
+            
+            # Show results
+            for label, (valid, error_msg) in validations.items():
+                if valid:
+                    st.markdown(f"✅ **{label}**: Correct")
+                else:
+                    st.markdown(f"❌ **{label}**: {error_msg}")
+                    all_valid = False
+            
+            # Check memo and signature
+            if current_values["signature"].strip():
+                st.markdown("✅ **Signature**: Present")
+            else:
+                st.markdown("⚠️ **Signature**: Add your signature")
+                all_valid = False
+                
+            if current_values["memo"].strip():
+                st.markdown("ℹ️ **Memo**: Added (optional)")
+            
+            if all_valid:
+                st.balloons()
+                st.success("🎉 Perfect! Your check is complete and correct!")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1119,7 +1285,148 @@ def render_check_you_do() -> None:
 def main() -> None:
     inject_global_styles()
     _ensure_session_state_defaults()
+    
+    # Handle We Do input updates and navigation BEFORE _ensure_flow_defaults to prevent screen reset
+    qp = st.query_params
+    
+    # Process input field updates first
+    we_fields = ["date","payee","amount_numeric","amount_words","memo","signature"]
+    input_updated = False
+    for field in we_fields:
+        param_name = f"we_{field}"
+        if param_name in qp:
+            new_value = qp[param_name]
+            # Update session state
+            if field == "date":
+                if new_value != st.session_state.get("we_date", ""):
+                    st.session_state.we_date = new_value
+                    input_updated = True
+            elif field == "payee":
+                if new_value != st.session_state.get("we_payee", ""):
+                    st.session_state.we_payee = new_value
+                    input_updated = True
+            elif field == "amount_numeric":
+                clean_value = new_value.lstrip('$').strip()
+                if clean_value != st.session_state.get("we_amount_numeric", ""):
+                    st.session_state.we_amount_numeric = clean_value
+                    input_updated = True
+            elif field == "amount_words":
+                if new_value != st.session_state.get("we_amount_words", ""):
+                    st.session_state.we_amount_words = new_value
+                    input_updated = True
+            elif field == "memo":
+                if new_value != st.session_state.get("we_memo", ""):
+                    st.session_state.we_memo = new_value
+                    input_updated = True
+            elif field == "signature":
+                if new_value != st.session_state.get("we_signature", ""):
+                    st.session_state.we_signature = new_value
+                    input_updated = True
+            break
+    
+    # If input was updated, clear params and rerun
+    if input_updated:
+        st.query_params.clear()
+        st.rerun()
+    
+    # Handle navigation actions  
+    if "we_nav" in qp:
+        # Preserve screen context from URL
+        if "screen" in qp:
+            st.session_state.screen = qp["screen"]
+        nav_action = qp["we_nav"]
+        current_step = st.session_state.we_step
+        we_fields = ["date","payee","amount_numeric","amount_words","memo","signature"]
+        
+        # Get current field and value for validation
+        current_field = we_fields[current_step] if current_step < len(we_fields) else None
+        current_values = {
+            "date": st.session_state.we_date,
+            "payee": st.session_state.we_payee,
+            "amount_numeric": st.session_state.we_amount_numeric,
+            "amount_words": st.session_state.we_amount_words,
+            "memo": st.session_state.we_memo,
+            "signature": st.session_state.we_signature,
+        }
+        
+        # Get expected values from scenario
+        scenarios = _get_guided_scenarios()
+        we_scenario = scenarios[1] if len(scenarios) > 1 else scenarios[0]  # "We Do" is index 1, fallback to 0
+        expected = {
+            "date": we_scenario.get("date", ""),
+            "payee": we_scenario.get("payee", ""),
+            "amount_numeric": we_scenario.get("amount_numeric", ""),
+            "amount_words": we_scenario.get("amount_words", ""),
+            "memo": we_scenario.get("memo", ""),
+            "signature": we_scenario.get("signature", ""),
+        }
+        
+        if nav_action == "back" and current_step > 0:
+            st.session_state.we_step = current_step - 1
+            st.session_state.we_validation_error = ""  # Clear any validation error
+        elif nav_action == "next" and current_step < len(we_fields) - 1:
+            # Validate current field before allowing progression
+            can_advance = True
+            error_msg = ""
+            
+            if current_field:
+                current_value = current_values.get(current_field, "")
+                
+                if current_field == "date":
+                    if not current_value:
+                        can_advance, error_msg = False, "Please enter a date before continuing"
+                    else:
+                        ok, msg = _validate_date(current_value)
+                        can_advance, error_msg = ok, msg or "Please enter a valid date (MM/DD/YYYY)"
+                elif current_field == "payee":
+                    if not current_value:
+                        can_advance, error_msg = False, "Please enter the payee name before continuing"
+                    else:
+                        ok, msg = _validate_payee(current_value, expected["payee"])
+                        can_advance, error_msg = ok, msg or f"Please enter '{expected['payee']}'"
+                elif current_field == "amount_numeric":
+                    if not current_value:
+                        can_advance, error_msg = False, "Please enter the dollar amount before continuing"
+                    else:
+                        ok, msg = _validate_amount_numeric(current_value, expected["amount_numeric"])
+                        can_advance, error_msg = ok, msg or f"Please enter '{expected['amount_numeric']}'"
+                elif current_field == "amount_words":
+                    if not current_value:
+                        can_advance, error_msg = False, "Please write out the amount in words before continuing"
+                    else:
+                        ok, msg = _validate_amount_words(current_value, expected["amount_words"])
+                        can_advance, error_msg = ok, msg or f"Please write '{expected['amount_words']}'"
+                elif current_field == "memo":
+                    # Memo is optional, always allow advancement
+                    can_advance = True
+                elif current_field == "signature":
+                    if not current_value or len(current_value.strip()) == 0:
+                        can_advance, error_msg = False, "Please add your signature before continuing"
+                    else:
+                        can_advance = True
+            
+            if can_advance:
+                st.session_state.we_step = current_step + 1
+                st.session_state.we_validation_error = ""  # Clear any validation error
+            else:
+                st.session_state.we_validation_error = error_msg
+                
+        elif nav_action == "done":
+            # Validate final field (signature) before completion
+            signature_value = current_values.get("signature", "")
+            if signature_value and len(signature_value.strip()) > 0:
+                st.session_state.we_completed = True
+                st.session_state.we_validation_error = ""
+            else:
+                st.session_state.we_validation_error = "Please add your signature before finishing"
+        
+        # Clear query params and rerun
+        st.query_params.clear()
+        st.rerun()
+    
+    # Now set defaults AFTER navigation is handled
     _ensure_flow_defaults()
+    
     render_header()
     render_top_nav()
 

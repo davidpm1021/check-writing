@@ -1,0 +1,38 @@
+{
+  "date": {
+    "top": 12,
+    "left": 71,
+    "width": 24,
+    "height": 7
+  },
+  "payee": {
+    "top": 32,
+    "left": 17,
+    "width": 61,
+    "height": 8
+  },
+  "amount_numeric": {
+    "top": 33,
+    "left": 81,
+    "width": 14,
+    "height": 7
+  },
+  "amount_words": {
+    "top": 46,
+    "left": 4,
+    "width": 79,
+    "height": 8
+  },
+  "memo": {
+    "top": 73,
+    "left": 9,
+    "width": 31,
+    "height": 7
+  },
+  "signature": {
+    "top": 73,
+    "left": 55,
+    "width": 39,
+    "height": 7
+  }
+}
